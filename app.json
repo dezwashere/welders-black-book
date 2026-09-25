@@ -1,1 +1,19 @@
-{"expo":{"name":"Welder's Black Book","slug":"welders-black-book","version":"0.1.0","orientation":"portrait","userInterfaceStyle":"dark","ios":{"supportsTablet":true},"android":{"adaptiveIcon":{"backgroundColor":"#000000"}}}}
+{
+  "expo": {
+    "name": "Welder's Black Book",
+    "slug": "welders-black-book",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dezwashere.weldersblackbook"
+    },
+    "android": {
+      "package": "com.dezwashere.weldersblackbook",
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      }
+    }
+  }
+}
