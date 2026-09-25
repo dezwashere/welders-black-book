@@ -212,7 +212,7 @@ function CircleScreen({ onBack }: { onBack: () => void }) {
             <View style={styles.circleLine} />
             <Text style={styles.circleD}>D</Text>
           </View>
-          <Text style={styles.formulaText}>C = π × D{'\\n'}C = π × 2r{'\\n'}π = 3.1416</Text>
+          <Text style={styles.formulaText}>C = π × D{"\n"}C = π × 2r{"\n"}π = 3.1416</Text>
         </View>
 
         <Segment
