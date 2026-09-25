@@ -10,6 +10,7 @@ import {
   ScrollView,
   StatusBar,
   Platform,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,7 +22,10 @@ type Screen =
   | 'rod'
   | 'metal'
   | 'thickness'
-  | 'condition';
+  | 'condition'
+  | 'metalDetail'
+  | 'thicknessDetail'
+  | 'conditionDetail';
 
 const BG = '#000000';
 const PANEL = '#191b1c';
@@ -55,37 +59,112 @@ const fallbackPipes = [
   ['4', '4.500', '4.026'],
 ];
 
+const wikiImage = (file: string) =>
+  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=900`;
+
 const metals = [
-  ['Mild Steel', 'albums-outline'],
-  ['Stainless Steel', 'albums-outline'],
-  ['Aluminum', 'albums-outline'],
-  ['Cast Iron', 'albums-outline'],
-  ['Galvanized', 'albums-outline'],
-  ['Chromoly', 'albums-outline'],
-  ['Copper', 'albums-outline'],
+  {
+    name: 'Mild Steel',
+    image: wikiImage('Metal steel surface.jpg'),
+    description: 'Low-carbon steel with a dull gray surface. One of the most common fabrication and structural welding materials.',
+    welding: 'Commonly welded with SMAW, MIG, TIG, and flux-core processes.',
+    note: 'Remove mill scale, oil, paint, and heavy rust where practical before welding.',
+  },
+  {
+    name: 'Stainless Steel',
+    image: wikiImage('Stainless-steel-304-austenite-fracture.jpeg'),
+    description: 'Corrosion-resistant steel containing chromium. Surface appearance can range from bright to brushed or matte.',
+    welding: 'Use a filler compatible with the stainless grade and control heat input.',
+    note: 'Keep stainless tools and abrasives separate from carbon-steel tools to reduce contamination.',
+  },
+  {
+    name: 'Aluminum',
+    image: wikiImage('Aluminum sheet info.jpg'),
+    description: 'Lightweight nonferrous metal with a silver-gray oxide layer that reforms quickly after cleaning.',
+    welding: 'Typically welded with MIG or AC TIG using aluminum-compatible filler.',
+    note: 'Remove oxide and contamination immediately before welding for best results.',
+  },
+  {
+    name: 'Cast Iron',
+    image: wikiImage('Castingiron.jpg'),
+    description: 'High-carbon iron alloy commonly found in cast housings, machinery, cookware, and older components.',
+    welding: 'Repair welding often uses nickel-based filler and controlled preheat/cooling procedures.',
+    note: 'Identify the casting and repair requirements before welding; cracking risk can be significant.',
+  },
+  {
+    name: 'Galvanized',
+    image: wikiImage('Galvanized surface.jpg'),
+    description: 'Steel coated with zinc. Hot-dip galvanized surfaces often show a crystalline spangle pattern.',
+    welding: 'The zinc coating should be removed from the weld area where practical.',
+    note: 'Use effective ventilation/fume controls when welding galvanized material.',
+  },
+  {
+    name: 'Chromoly',
+    image: wikiImage('Rivendell Roadeo Fork 01.jpg'),
+    description: 'Chromium-molybdenum alloy steel used for high-strength tubing, frames, motorsport parts, and fabrication.',
+    welding: 'Filler and heat treatment depend on the exact alloy, thickness, and service requirement.',
+    note: 'Do not assume every Cr-Mo alloy can use the same procedure; verify the material grade.',
+  },
+  {
+    name: 'Copper',
+    image: wikiImage('Copper sheet 50x.jpg'),
+    description: 'Highly conductive nonferrous metal with a reddish-orange appearance when clean.',
+    welding: 'High thermal conductivity usually requires more heat input than similarly sized steel.',
+    note: 'Use a process and filler intended for the specific copper alloy.',
+  },
 ] as const;
 
 const thicknesses = [
-  ['24 gauge', '0.024 in (0.6 mm)'],
-  ['20 gauge', '0.036 in (0.9 mm)'],
-  ['18 gauge', '0.048 in (1.2 mm)'],
-  ['16 gauge', '0.060 in (1.5 mm)'],
-  ['14 gauge', '0.075 in (1.9 mm)'],
-  ['11 gauge', '0.120 in (3.0 mm)'],
-  ['1/8"', '0.125 in (3.2 mm)'],
-  ['1/4"', '0.250 in (6.4 mm)'],
-  ['3/8"', '0.375 in (9.5 mm)'],
-  ['1/2"', '0.500 in (12.7 mm)'],
-];
+  { label: '24 gauge', value: '0.024 in (0.6 mm)', inches: '0.024 in', mm: '0.6 mm', note: 'Very thin sheet. Heat control is critical to reduce burn-through and distortion.' },
+  { label: '20 gauge', value: '0.036 in (0.9 mm)', inches: '0.036 in', mm: '0.9 mm', note: 'Thin sheet. Short welds, lower heat, and good fit-up help control distortion.' },
+  { label: '18 gauge', value: '0.048 in (1.2 mm)', inches: '0.048 in', mm: '1.2 mm', note: 'Common light-gauge sheet thickness used in fabrication and repair work.' },
+  { label: '16 gauge', value: '0.060 in (1.5 mm)', inches: '0.060 in', mm: '1.5 mm', note: 'Light sheet with a little more heat tolerance than 18- or 20-gauge material.' },
+  { label: '14 gauge', value: '0.075 in (1.9 mm)', inches: '0.075 in', mm: '1.9 mm', note: 'Medium sheet thickness used in brackets, panels, and general fabrication.' },
+  { label: '11 gauge', value: '0.120 in (3.0 mm)', inches: '0.120 in', mm: '3.0 mm', note: 'Near 1/8 inch plate thickness and suitable for many general fabrication jobs.' },
+  { label: '1/8"', value: '0.125 in (3.2 mm)', inches: '0.125 in', mm: '3.2 mm', note: 'Common light plate thickness. Joint type still determines required penetration and settings.' },
+  { label: '1/4"', value: '0.250 in (6.4 mm)', inches: '0.250 in', mm: '6.4 mm', note: 'Common plate thickness. Beveling or multiple passes may be required depending on the joint and process.' },
+  { label: '3/8"', value: '0.375 in (9.5 mm)', inches: '0.375 in', mm: '9.5 mm', note: 'Heavier plate that often requires joint preparation and multiple passes.' },
+  { label: '1/2"', value: '0.500 in (12.7 mm)', inches: '0.500 in', mm: '12.7 mm', note: 'Heavy plate. Procedure, preheat, joint design, and multiple passes become increasingly important.' },
+] as const;
 
 const conditions = [
-  ['Clean', 'Bare metal, no rust or coating.', '#8b8b84'],
-  ['Light Rust', 'Surface rust, still solid.', '#9d5a22'],
-  ['Moderate Rust', 'Visible rust, scale.', '#b45f1b'],
-  ['Heavy Rust', 'Thick rust, pitting.', '#8f4318'],
-  ['Painted', 'Remove paint for best results.', '#59666d'],
-  ['Galvanized', 'Zinc coating, use specific rods.', '#949a9b'],
-];
+  {
+    name: 'Clean',
+    desc: 'Bare metal, no rust or coating.',
+    image: wikiImage('Metal steel surface.jpg'),
+    prep: 'Remove oil, moisture, dirt, and loose scale. Bright clean metal gives the most predictable arc and weld quality.',
+  },
+  {
+    name: 'Light Rust',
+    desc: 'Surface rust, still solid.',
+    image: wikiImage('Rust on metal.jpg'),
+    prep: 'Wire-brush or grind the weld zone to remove loose oxidation. Confirm the base metal is still sound.',
+  },
+  {
+    name: 'Moderate Rust',
+    desc: 'Visible rust and scale.',
+    image: wikiImage('Rusty steel plate.jpg'),
+    prep: 'Mechanically remove rust and scale around the joint. Recheck remaining thickness before welding.',
+  },
+  {
+    name: 'Heavy Rust',
+    desc: 'Thick rust, pitting, or material loss.',
+    image: wikiImage('Rusted metal.jpg'),
+    prep: 'Do not weld over heavy corrosion. Clean to sound metal and verify that enough base material remains for a safe repair.',
+  },
+  {
+    name: 'Painted',
+    desc: 'Paint or coating over the base metal.',
+    image: wikiImage('Rusted top edge white painted slightly worn scratched chipped steel metal surface texture.jpg'),
+    prep: 'Remove paint from the weld zone and nearby heat-affected area. Unknown coatings can create hazardous fumes.',
+  },
+  {
+    name: 'Galvanized',
+    desc: 'Zinc-coated steel.',
+    image: wikiImage('Galvanized surface.jpg'),
+    prep: 'Remove zinc from the immediate weld zone where practical and use effective ventilation/fume controls.',
+  },
+] as const;
 
 function Header({
   title,
@@ -407,17 +486,25 @@ function InfoLine({
   );
 }
 
-function MetalScreen({ onBack }: { onBack: () => void }) {
+function MetalScreen({
+  onBack,
+  onSelect,
+}: {
+  onBack: () => void;
+  onSelect: (index: number) => void;
+}) {
   return (
     <>
       <Header title="METAL REFERENCE" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        {metals.map(([name, icon], index) => (
-          <Pressable key={name} style={styles.referenceRow}>
-            <View style={[styles.metalSwatch, index === 6 && { backgroundColor: '#c8753c' }]}>
-              <Ionicons name={icon} size={27} color="#d8d8d5" />
-            </View>
-            <Text style={styles.referenceTitle}>{name}</Text>
+        {metals.map((metal, index) => (
+          <Pressable
+            key={metal.name}
+            onPress={() => onSelect(index)}
+            style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
+          >
+            <Image source={{ uri: metal.image }} style={styles.referencePhoto} />
+            <Text style={styles.referenceTitle}>{metal.name}</Text>
             <Ionicons name="chevron-forward" size={22} color={TEXT} />
           </Pressable>
         ))}
@@ -426,17 +513,27 @@ function MetalScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
-function ThicknessScreen({ onBack }: { onBack: () => void }) {
+function ThicknessScreen({
+  onBack,
+  onSelect,
+}: {
+  onBack: () => void;
+  onSelect: (index: number) => void;
+}) {
   return (
     <>
       <Header title="THICKNESS REFERENCE" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        {thicknesses.map(([label, value]) => (
-          <Pressable key={label} style={styles.referenceRow}>
+        {thicknesses.map((item, index) => (
+          <Pressable
+            key={item.label}
+            onPress={() => onSelect(index)}
+            style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
+          >
             <View style={styles.thicknessSwatch} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.referenceTitle}>{label}</Text>
-              <Text style={styles.referenceSub}>{value}</Text>
+              <Text style={styles.referenceTitle}>{item.label}</Text>
+              <Text style={styles.referenceSub}>{item.value}</Text>
             </View>
             <Ionicons name="chevron-forward" size={22} color={TEXT} />
           </Pressable>
@@ -446,21 +543,90 @@ function ThicknessScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
-function ConditionScreen({ onBack }: { onBack: () => void }) {
+function ConditionScreen({
+  onBack,
+  onSelect,
+}: {
+  onBack: () => void;
+  onSelect: (index: number) => void;
+}) {
   return (
     <>
       <Header title="RUST / CONDITION" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        {conditions.map(([name, desc, color]) => (
-          <Pressable key={name} style={styles.conditionRow}>
-            <View style={[styles.conditionSwatch, { backgroundColor: color }]} />
+        {conditions.map((condition, index) => (
+          <Pressable
+            key={condition.name}
+            onPress={() => onSelect(index)}
+            style={({ pressed }) => [styles.conditionRow, pressed && styles.pressed]}
+          >
+            <Image source={{ uri: condition.image }} style={styles.conditionPhoto} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.referenceTitle}>{name}</Text>
-              <Text style={styles.referenceSub}>{desc}</Text>
+              <Text style={styles.referenceTitle}>{condition.name}</Text>
+              <Text style={styles.referenceSub}>{condition.desc}</Text>
             </View>
             <Ionicons name="chevron-forward" size={22} color={TEXT} />
           </Pressable>
         ))}
+      </ScrollView>
+    </>
+  );
+}
+
+function MetalDetailScreen({ index, onBack }: { index: number; onBack: () => void }) {
+  const metal = metals[index];
+  return (
+    <>
+      <Header title={metal.name.toUpperCase()} onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <Image source={{ uri: metal.image }} style={styles.detailPhoto} />
+        <Text style={styles.detailTitle}>{metal.name}</Text>
+        <Text style={styles.detailBody}>{metal.description}</Text>
+        <View style={styles.infoCard}>
+          <InfoLine label="Welding" value={metal.welding} multiline />
+          <InfoLine label="Prep / Notes" value={metal.note} multiline />
+        </View>
+        <Text style={styles.photoSource}>Reference photo: Wikimedia Commons</Text>
+      </ScrollView>
+    </>
+  );
+}
+
+function ThicknessDetailScreen({ index, onBack }: { index: number; onBack: () => void }) {
+  const item = thicknesses[index];
+  return (
+    <>
+      <Header title={item.label.toUpperCase()} onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.thicknessDetailCard}>
+          <Text style={styles.thicknessDetailLabel}>{item.label}</Text>
+          <Text style={styles.thicknessDetailValue}>{item.inches}</Text>
+          <Text style={styles.thicknessDetailMetric}>{item.mm}</Text>
+        </View>
+        <View style={styles.infoCard}>
+          <InfoLine label="Nominal" value={item.label} />
+          <InfoLine label="Decimal" value={item.inches} />
+          <InfoLine label="Metric" value={item.mm} />
+          <InfoLine label="Welding note" value={item.note} multiline />
+        </View>
+      </ScrollView>
+    </>
+  );
+}
+
+function ConditionDetailScreen({ index, onBack }: { index: number; onBack: () => void }) {
+  const condition = conditions[index];
+  return (
+    <>
+      <Header title={condition.name.toUpperCase()} onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <Image source={{ uri: condition.image }} style={styles.detailPhoto} />
+        <Text style={styles.detailTitle}>{condition.name}</Text>
+        <Text style={styles.detailBody}>{condition.desc}</Text>
+        <View style={styles.infoCard}>
+          <InfoLine label="Prep / Notes" value={condition.prep} multiline />
+        </View>
+        <Text style={styles.photoSource}>Reference photo: Wikimedia Commons</Text>
       </ScrollView>
     </>
   );
@@ -468,6 +634,9 @@ function ConditionScreen({ onBack }: { onBack: () => void }) {
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
+  const [selectedMetal, setSelectedMetal] = useState(0);
+  const [selectedThickness, setSelectedThickness] = useState(0);
+  const [selectedCondition, setSelectedCondition] = useState(0);
   const goHome = () => setScreen('home');
 
   if (screen === 'circle') {
@@ -505,7 +674,21 @@ export default function App() {
   if (screen === 'metal') {
     return (
       <SafeAreaView style={styles.safe}>
-        <MetalScreen onBack={goHome} />
+        <MetalScreen
+          onBack={goHome}
+          onSelect={(index) => {
+            setSelectedMetal(index);
+            setScreen('metalDetail');
+          }}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (screen === 'metalDetail') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <MetalDetailScreen index={selectedMetal} onBack={() => setScreen('metal')} />
       </SafeAreaView>
     );
   }
@@ -513,7 +696,24 @@ export default function App() {
   if (screen === 'thickness') {
     return (
       <SafeAreaView style={styles.safe}>
-        <ThicknessScreen onBack={goHome} />
+        <ThicknessScreen
+          onBack={goHome}
+          onSelect={(index) => {
+            setSelectedThickness(index);
+            setScreen('thicknessDetail');
+          }}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (screen === 'thicknessDetail') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ThicknessDetailScreen
+          index={selectedThickness}
+          onBack={() => setScreen('thickness')}
+        />
       </SafeAreaView>
     );
   }
@@ -521,7 +721,24 @@ export default function App() {
   if (screen === 'condition') {
     return (
       <SafeAreaView style={styles.safe}>
-        <ConditionScreen onBack={goHome} />
+        <ConditionScreen
+          onBack={goHome}
+          onSelect={(index) => {
+            setSelectedCondition(index);
+            setScreen('conditionDetail');
+          }}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (screen === 'conditionDetail') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ConditionDetailScreen
+          index={selectedCondition}
+          onBack={() => setScreen('condition')}
+        />
       </SafeAreaView>
     );
   }
@@ -952,14 +1169,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  metalSwatch: {
+  referencePhoto: {
     width: 62,
-    height: 45,
-    borderRadius: 4,
-    backgroundColor: '#585858',
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: 50,
+    borderRadius: 5,
     marginRight: 12,
+    backgroundColor: '#333',
   },
   thicknessSwatch: {
     width: 62,
@@ -993,12 +1208,64 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  conditionSwatch: {
+  conditionPhoto: {
     width: 78,
     height: 66,
     borderRadius: 5,
     marginRight: 12,
+    backgroundColor: '#333',
+  },
+  detailPhoto: {
+    width: '100%',
+    height: 250,
+    borderRadius: 10,
+    backgroundColor: '#222',
+    marginBottom: 16,
+  },
+  detailTitle: {
+    color: TEXT,
+    fontSize: 28,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  detailBody: {
+    color: TEXT,
+    fontSize: 16,
+    lineHeight: 23,
+    marginBottom: 16,
+  },
+  photoSource: {
+    color: MUTED,
+    fontSize: 11,
+    marginTop: 10,
+  },
+  thicknessDetailCard: {
+    minHeight: 190,
+    backgroundColor: YELLOW,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#6e6e68',
+    borderColor: YELLOW_DARK,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    padding: 18,
+  },
+  thicknessDetailLabel: {
+    color: BLACK,
+    fontSize: 24,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  thicknessDetailValue: {
+    color: BLACK,
+    fontSize: 42,
+    lineHeight: 48,
+    fontWeight: '900',
+  },
+  thicknessDetailMetric: {
+    color: BLACK,
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 4,
   },
 });
