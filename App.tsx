@@ -117,7 +117,7 @@ const metals = [
   },
   {
     name: 'Aluminum',
-    image: wikiImage('Aluminum sheet info.jpg'),
+    image: wikiImage('Solid Aluminum Plate.png'),
     description: 'Lightweight nonferrous metal with a silver-gray oxide layer that reforms quickly after cleaning.',
     welding: 'Typically welded with MIG or AC TIG using aluminum-compatible filler.',
     note: 'Remove oxide and contamination immediately before welding for best results.',
@@ -138,7 +138,7 @@ const metals = [
   },
   {
     name: 'Chromoly',
-    image: wikiImage('Rivendell Roadeo Fork 01.jpg'),
+    image: wikiImage('Integra GSR Flywheel.jpg'),
     description: 'Chromium-molybdenum alloy steel used for high-strength tubing, frames, motorsport parts, and fabrication.',
     welding: 'Filler and heat treatment depend on the exact alloy, thickness, and service requirement.',
     note: 'Do not assume every Cr-Mo alloy can use the same procedure; verify the material grade.',
@@ -153,16 +153,16 @@ const metals = [
 ] as const;
 
 const thicknesses = [
-  { label: '24 gauge', value: '0.024 in (0.6 mm)', inches: '0.024 in', mm: '0.6 mm', note: 'Very thin sheet. Heat control is critical to reduce burn-through and distortion.' },
-  { label: '20 gauge', value: '0.036 in (0.9 mm)', inches: '0.036 in', mm: '0.9 mm', note: 'Thin sheet. Short welds, lower heat, and good fit-up help control distortion.' },
-  { label: '18 gauge', value: '0.048 in (1.2 mm)', inches: '0.048 in', mm: '1.2 mm', note: 'Common light-gauge sheet thickness used in fabrication and repair work.' },
-  { label: '16 gauge', value: '0.060 in (1.5 mm)', inches: '0.060 in', mm: '1.5 mm', note: 'Light sheet with a little more heat tolerance than 18- or 20-gauge material.' },
-  { label: '14 gauge', value: '0.075 in (1.9 mm)', inches: '0.075 in', mm: '1.9 mm', note: 'Medium sheet thickness used in brackets, panels, and general fabrication.' },
-  { label: '11 gauge', value: '0.120 in (3.0 mm)', inches: '0.120 in', mm: '3.0 mm', note: 'Near 1/8 inch plate thickness and suitable for many general fabrication jobs.' },
-  { label: '1/8"', value: '0.125 in (3.2 mm)', inches: '0.125 in', mm: '3.2 mm', note: 'Common light plate thickness. Joint type still determines required penetration and settings.' },
-  { label: '1/4"', value: '0.250 in (6.4 mm)', inches: '0.250 in', mm: '6.4 mm', note: 'Common plate thickness. Beveling or multiple passes may be required depending on the joint and process.' },
-  { label: '3/8"', value: '0.375 in (9.5 mm)', inches: '0.375 in', mm: '9.5 mm', note: 'Heavier plate that often requires joint preparation and multiple passes.' },
-  { label: '1/2"', value: '0.500 in (12.7 mm)', inches: '0.500 in', mm: '12.7 mm', note: 'Heavy plate. Procedure, preheat, joint design, and multiple passes become increasingly important.' },
+  { label: '24 gauge', value: '0.024 in (0.6 mm)', inches: '0.024 in', mm: '0.6 mm', previewHeight: 3, note: 'Very thin sheet. Heat control is critical to reduce burn-through and distortion.' },
+  { label: '20 gauge', value: '0.036 in (0.9 mm)', inches: '0.036 in', mm: '0.9 mm', previewHeight: 4, note: 'Thin sheet. Short welds, lower heat, and good fit-up help control distortion.' },
+  { label: '18 gauge', value: '0.048 in (1.2 mm)', inches: '0.048 in', mm: '1.2 mm', previewHeight: 5, note: 'Common light-gauge sheet thickness used in fabrication and repair work.' },
+  { label: '16 gauge', value: '0.060 in (1.5 mm)', inches: '0.060 in', mm: '1.5 mm', previewHeight: 6, note: 'Light sheet with a little more heat tolerance than 18- or 20-gauge material.' },
+  { label: '14 gauge', value: '0.075 in (1.9 mm)', inches: '0.075 in', mm: '1.9 mm', previewHeight: 8, note: 'Medium sheet thickness used in brackets, panels, and general fabrication.' },
+  { label: '11 gauge', value: '0.120 in (3.0 mm)', inches: '0.120 in', mm: '3.0 mm', previewHeight: 11, note: 'Near 1/8 inch plate thickness and suitable for many general fabrication jobs.' },
+  { label: '1/8"', value: '0.125 in (3.2 mm)', inches: '0.125 in', mm: '3.2 mm', previewHeight: 12, note: 'Common light plate thickness. Joint type still determines required penetration and settings.' },
+  { label: '1/4"', value: '0.250 in (6.4 mm)', inches: '0.250 in', mm: '6.4 mm', previewHeight: 21, note: 'Common plate thickness. Beveling or multiple passes may be required depending on the joint and process.' },
+  { label: '3/8"', value: '0.375 in (9.5 mm)', inches: '0.375 in', mm: '9.5 mm', previewHeight: 30, note: 'Heavier plate that often requires joint preparation and multiple passes.' },
+  { label: '1/2"', value: '0.500 in (12.7 mm)', inches: '0.500 in', mm: '12.7 mm', previewHeight: 40, note: 'Heavy plate. Procedure, preheat, joint design, and multiple passes become increasingly important.' },
 ] as const;
 
 const conditions = [
@@ -175,25 +175,25 @@ const conditions = [
   {
     name: 'Light Rust',
     desc: 'Surface rust, still solid.',
-    image: wikiImage('Rust on metal.jpg'),
+    image: wikiImage('RR79.40.7A No. 1670 Closeup Rust 1.JPG'),
     prep: 'Wire-brush or grind the weld zone to remove loose oxidation. Confirm the base metal is still sound.',
   },
   {
     name: 'Moderate Rust',
     desc: 'Visible rust and scale.',
-    image: wikiImage('Rusty steel plate.jpg'),
+    image: wikiImage('Closeup Rust (29221463032).jpg'),
     prep: 'Mechanically remove rust and scale around the joint. Recheck remaining thickness before welding.',
   },
   {
     name: 'Heavy Rust',
     desc: 'Thick rust, pitting, or material loss.',
-    image: wikiImage('Rusted metal.jpg'),
+    image: wikiImage('Rust Closeup (14449459925).jpg'),
     prep: 'Do not weld over heavy corrosion. Clean to sound metal and verify that enough base material remains for a safe repair.',
   },
   {
     name: 'Painted',
     desc: 'Paint or coating over the base metal.',
-    image: wikiImage('Rusted top edge white painted slightly worn scratched chipped steel metal surface texture.jpg'),
+    image: wikiImage('Rusting Metal DTXR-ML-2.jpg'),
     prep: 'Remove paint from the weld zone and nearby heat-affected area. Unknown coatings can create hazardous fumes.',
   },
   {
@@ -224,11 +224,13 @@ function Header({
 
 function HomeButton({
   icon,
+  iconColor,
   title,
   subtitle,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
   title: string;
   subtitle?: string;
   onPress: () => void;
@@ -236,13 +238,13 @@ function HomeButton({
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.homeButton, pressed && styles.pressed]}>
       <View style={styles.homeIconBox}>
-        <Ionicons name={icon} size={31} color={BLACK} />
+        <Ionicons name={icon} size={34} color={iconColor} />
       </View>
       <View style={styles.homeButtonTextWrap}>
         <Text style={styles.homeButtonTitle}>{title}</Text>
         {subtitle ? <Text style={styles.homeButtonSubtitle}>{subtitle}</Text> : null}
       </View>
-      <Ionicons name="chevron-forward" size={26} color={BLACK} />
+      <Ionicons name="chevron-forward" size={26} color={TEXT} />
     </Pressable>
   );
 }
@@ -734,7 +736,14 @@ function ThicknessScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
           >
-            <View style={styles.thicknessSwatch} />
+            <View style={styles.thicknessSwatchFrame}>
+              <View
+                style={[
+                  styles.thicknessSwatchBar,
+                  { height: item.previewHeight },
+                ]}
+              />
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.referenceTitle}>{item.label}</Text>
               <Text style={styles.referenceSub}>{item.value}</Text>
@@ -840,8 +849,17 @@ function ThicknessDetailScreen({
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.thicknessDetailCard}>
           <Text style={styles.thicknessDetailLabel}>{item.label}</Text>
+          <View style={styles.thicknessHeroFrame}>
+            <View
+              style={[
+                styles.thicknessHeroBar,
+                { height: Math.max(8, item.previewHeight * 2) },
+              ]}
+            />
+          </View>
           <Text style={styles.thicknessDetailValue}>{item.inches}</Text>
           <Text style={styles.thicknessDetailMetric}>{item.mm}</Text>
+          <Text style={styles.thicknessScaleNote}>Visual thickness comparison</Text>
         </View>
         <View style={styles.infoCard}>
           <InfoLine label="Nominal" value={item.label} />
@@ -1162,37 +1180,44 @@ export default function App() {
 
         <HomeButton
           icon="ellipse-outline"
+          iconColor="#efe1bf"
           title="CIRCLE CALCULATOR"
           onPress={() => { setOpenedSaved(null); setScreen('circle'); }}
         />
         <HomeButton
           icon="triangle-outline"
+          iconColor="#f2c230"
           title="TRIANGLE CALCULATOR"
           onPress={() => { setOpenedSaved(null); setScreen('triangle'); }}
         />
         <HomeButton
           icon="radio-button-on-outline"
+          iconColor="#bfe8f5"
           title="PIPE SIZES"
           subtitle="NB / OD / ID"
           onPress={() => { setOpenedSaved(null); setScreen('pipe'); }}
         />
         <HomeButton
           icon="flash-outline"
+          iconColor="#ff8a2b"
           title="WELDING ROD SELECTOR"
           onPress={() => { setOpenedSaved(null); setScreen('rod'); }}
         />
         <HomeButton
           icon="layers-outline"
+          iconColor="#e7e1d5"
           title="METAL REFERENCE"
           onPress={() => { setOpenedSaved(null); setScreen('metal'); }}
         />
         <HomeButton
           icon="resize-outline"
+          iconColor="#d8b8ff"
           title="THICKNESS REFERENCE"
           onPress={() => { setOpenedSaved(null); setScreen('thickness'); }}
         />
         <HomeButton
           icon="settings-outline"
+          iconColor="#f2a31b"
           title="RUST / CONDITION REFERENCE"
           onPress={() => { setOpenedSaved(null); setScreen('condition'); }}
         />
@@ -1232,14 +1257,14 @@ const styles = StyleSheet.create({
   },
   homeButton: {
     minHeight: 74,
-    backgroundColor: YELLOW,
+    backgroundColor: '#343638',
     borderRadius: 10,
     marginBottom: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: YELLOW_DARK,
+    borderColor: '#4a4d4f',
   },
   pressed: {
     opacity: 0.82,
@@ -1254,13 +1279,13 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   homeButtonTitle: {
-    color: BLACK,
+    color: TEXT,
     fontSize: 18,
     lineHeight: 20,
     fontWeight: '900',
   },
   homeButtonSubtitle: {
-    color: '#2f2a1b',
+    color: '#d5d5cf',
     fontSize: 14,
     fontWeight: '800',
     marginTop: 2,
@@ -1579,14 +1604,24 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#333',
   },
-  thicknessSwatch: {
+  thicknessSwatchFrame: {
     width: 62,
-    height: 34,
-    borderRadius: 2,
-    backgroundColor: '#8a8b87',
+    height: 50,
+    borderRadius: 5,
+    backgroundColor: '#2b2d2f',
     borderWidth: 1,
-    borderColor: '#b4b4af',
+    borderColor: '#55585a',
     marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thicknessSwatchBar: {
+    width: 46,
+    minHeight: 2,
+    borderRadius: 2,
+    backgroundColor: '#b8bbb8',
+    borderWidth: 1,
+    borderColor: '#deded8',
   },
   referenceTitle: {
     flex: 1,
@@ -1670,6 +1705,33 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     marginTop: 4,
+  },
+  thicknessHeroFrame: {
+    width: '100%',
+    height: 92,
+    borderRadius: 8,
+    backgroundColor: '#d9ad34',
+    borderWidth: 1,
+    borderColor: '#bb8d1e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12,
+  },
+  thicknessHeroBar: {
+    width: 185,
+    minHeight: 4,
+    borderRadius: 3,
+    backgroundColor: '#303234',
+    borderWidth: 1,
+    borderColor: '#55585a',
+  },
+  thicknessScaleNote: {
+    color: '#3b3118',
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   saveButton: {
     marginTop: 16,
