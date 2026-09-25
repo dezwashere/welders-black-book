@@ -212,9 +212,7 @@ function CircleScreen({ onBack }: { onBack: () => void }) {
             <View style={styles.circleLine} />
             <Text style={styles.circleD}>D</Text>
           </View>
-          <Text style={styles.formulaText}>C = π × D{'
-'}C = π × 2r{'
-'}π = 3.1416</Text>
+          <Text style={styles.formulaText}>C = π × D{'\\n'}C = π × 2r{'\\n'}π = 3.1416</Text>
         </View>
 
         <Segment
@@ -333,12 +331,9 @@ function PipeScreen({ onBack }: { onBack: () => void }) {
 
         <View style={styles.table}>
           <View style={[styles.tableRow, styles.tableHeaderRow]}>
-            <Text style={styles.tableHeader}>NB{'
-'}(in)</Text>
-            <Text style={styles.tableHeader}>OD{'
-'}(in)</Text>
-            <Text style={styles.tableHeader}>Schedule 40{'
-'}ID (in)</Text>
+            <Text style={styles.tableHeader}>NB{'\\n'}(in)</Text>
+            <Text style={styles.tableHeader}>OD{'\\n'}(in)</Text>
+            <Text style={styles.tableHeader}>Schedule 40{'\\n'}ID (in)</Text>
           </View>
           {rows.map((row, index) => (
             <View key={index} style={styles.tableRow}>
