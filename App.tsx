@@ -188,6 +188,54 @@ const metals = [
     welding: 'High thermal conductivity usually requires more heat input than similarly sized steel.',
     note: 'Use a process and filler intended for the specific copper alloy.',
   },
+  {
+    name: 'Brass',
+    spriteY: 0,
+    image: wikiImage('Brass photoetch sheet.jpg'),
+    description: 'Copper-zinc alloy used in fittings, hardware, decorative fabrication, and repair work.',
+    welding: 'Often joined by TIG, brazing, or braze-welding depending on alloy and application.',
+    note: 'Zinc can vaporize when heated. Use appropriate fume controls and verify the alloy before joining.',
+  },
+  {
+    name: 'Bronze',
+    spriteY: 0,
+    image: wikiImage('Sculpture bronze texture.jpg'),
+    description: 'Family of copper-based alloys commonly containing tin, silicon, aluminum, or other alloying elements.',
+    welding: 'Joining method and filler depend on the exact bronze alloy; TIG and brazing processes are common.',
+    note: 'Identify the bronze alloy before selecting filler or welding parameters.',
+  },
+  {
+    name: 'Nickel Alloys',
+    spriteY: 0,
+    image: wikiImage('Nickel (Element - 28).jpg'),
+    description: 'Nickel-based alloys are used where corrosion resistance, strength, or high-temperature performance is required.',
+    welding: 'Commonly welded with GTAW, GMAW, or SMAW using filler matched to the specific nickel alloy.',
+    note: 'Cleanliness and correct alloy identification are important; follow the applicable welding procedure.',
+  },
+  {
+    name: 'Titanium',
+    spriteY: 0,
+    image: wikiImage('Titanium sheet from powder (9067742593).jpg'),
+    description: 'Light, strong, corrosion-resistant metal used in aerospace, motorsport, chemical, and high-performance fabrication.',
+    welding: 'Typically GTAW welded with very clean material and extensive inert-gas shielding.',
+    note: 'Hot titanium reacts readily with air. Maintain shielding until the weld and heat-affected zone have cooled sufficiently.',
+  },
+  {
+    name: 'Magnesium',
+    spriteY: 0,
+    image: wikiImage('CSIRO ScienceImage 937 Coiled magnesium sheets and magnesium ingots.jpg'),
+    description: 'Very lightweight structural metal used in castings, transportation components, and specialty fabrication.',
+    welding: 'Many magnesium alloys can be GTAW or GMAW welded with alloy-compatible filler and careful cleaning.',
+    note: 'Magnesium chips, dust, and fine material present a serious fire hazard. Use procedures appropriate to the alloy and form.',
+  },
+  {
+    name: 'Copper-Nickel',
+    spriteY: 0,
+    image: wikiImage('10 francs Turin en argent 1930 et cupronickel 1949.jpg'),
+    description: 'Copper-nickel alloy valued for seawater corrosion resistance and widely used in marine piping and heat exchangers.',
+    welding: 'Commonly GTAW or GMAW welded using filler selected for the specific Cu-Ni grade.',
+    note: 'Keep the joint clean and verify the base alloy and service requirements before selecting filler.',
+  },
 ] as const;
 
 const thicknesses = [
@@ -953,7 +1001,7 @@ function MetalScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
           >
-            {metal.name === 'Aluminum' || metal.name === 'Cast Iron' ? (
+            {['Aluminum', 'Cast Iron', 'Brass', 'Bronze', 'Nickel Alloys', 'Titanium', 'Magnesium', 'Copper-Nickel'].includes(metal.name) ? (
               <Image source={{ uri: metal.image }} style={styles.referencePhoto} resizeMode="cover" />
             ) : (
               <SpriteCrop
