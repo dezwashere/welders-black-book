@@ -100,9 +100,39 @@ const fallbackPipes = [
 const wikiImage = (file: string) =>
   `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=900`;
 
+const APPROVED_METAL_SPRITE = require('./assets/reference/metal-approved.png');
+const APPROVED_CONDITION_SPRITE = require('./assets/reference/condition-approved.jpg');
+const APPROVED_THICKNESS = require('./assets/reference/thickness-approved.png');
+
+function SpriteCrop({
+  source,
+  width,
+  height,
+  spriteHeight,
+  y,
+  style,
+}: {
+  source: any;
+  width: number;
+  height: number;
+  spriteHeight: number;
+  y: number;
+  style?: any;
+}) {
+  return (
+    <View style={[{ width, height, overflow: 'hidden' }, style]}>
+      <Image
+        source={source}
+        style={{ position: 'absolute', left: 0, top: -y, width, height: spriteHeight }}
+      />
+    </View>
+  );
+}
+
 const metals = [
   {
     name: 'Mild Steel',
+    spriteY: 225,
     image: wikiImage('Mild steel sheet metal close up.jpg'),
     description: 'Low-carbon steel with a dull gray surface. One of the most common fabrication and structural welding materials.',
     welding: 'Commonly welded with SMAW, MIG, TIG, and flux-core processes.',
@@ -110,6 +140,7 @@ const metals = [
   },
   {
     name: 'Stainless Steel',
+    spriteY: 270,
     image: wikiImage('Dark grey stainless steel heavily scratched worn seamless metal surface texture.jpg'),
     description: 'Corrosion-resistant steel containing chromium. Surface appearance can range from bright to brushed or matte.',
     welding: 'Use a filler compatible with the stainless grade and control heat input.',
@@ -117,6 +148,7 @@ const metals = [
   },
   {
     name: 'Aluminum',
+    spriteY: 0,
     image: wikiImage('Solid Aluminum Plate.png'),
     description: 'Lightweight nonferrous metal with a silver-gray oxide layer that reforms quickly after cleaning.',
     welding: 'Typically welded with MIG or AC TIG using aluminum-compatible filler.',
@@ -124,6 +156,7 @@ const metals = [
   },
   {
     name: 'Cast Iron',
+    spriteY: 45,
     image: wikiImage('Cast iron sample.jpg'),
     description: 'High-carbon iron alloy commonly found in cast housings, machinery, cookware, and older components.',
     welding: 'Repair welding often uses nickel-based filler and controlled preheat/cooling procedures.',
@@ -131,6 +164,7 @@ const metals = [
   },
   {
     name: 'Galvanized',
+    spriteY: 180,
     image: wikiImage('Grey galvanized smooth clean steel metal sheet seamless surface texture.jpg'),
     description: 'Steel coated with zinc. Hot-dip galvanized surfaces often show a crystalline spangle pattern.',
     welding: 'The zinc coating should be removed from the weld area where practical.',
@@ -138,6 +172,7 @@ const metals = [
   },
   {
     name: 'Chromoly',
+    spriteY: 90,
     image: 'https://cdn.shopify.com/s/files/1/0610/7699/6235/files/Chromoly-Plates-Guage2.jpg?v=1761321484',
     description: 'Chromium-molybdenum alloy steel used for high-strength tubing, frames, motorsport parts, and fabrication.',
     welding: 'Filler and heat treatment depend on the exact alloy, thickness, and service requirement.',
@@ -145,6 +180,7 @@ const metals = [
   },
   {
     name: 'Copper',
+    spriteY: 135,
     image: wikiImage('Copper sheet 100x.jpg'),
     description: 'Highly conductive nonferrous metal with a reddish-orange appearance when clean.',
     welding: 'High thermal conductivity usually requires more heat input than similarly sized steel.',
@@ -168,36 +204,42 @@ const thicknesses = [
 const conditions = [
   {
     name: 'Clean',
+    spriteY: 0,
     desc: 'Bare metal, no rust or coating.',
     image: wikiImage('Metal steel surface.jpg'),
     prep: 'Remove oil, moisture, dirt, and loose scale. Bright clean metal gives the most predictable arc and weld quality.',
   },
   {
     name: 'Light Rust',
+    spriteY: 162,
     desc: 'Surface rust, still solid.',
     image: wikiImage('Free Texture Rusty Metal (22819581).jpeg'),
     prep: 'Wire-brush or grind the weld zone to remove loose oxidation. Confirm the base metal is still sound.',
   },
   {
     name: 'Moderate Rust',
+    spriteY: 216,
     desc: 'Visible rust and scale.',
     image: wikiImage('Free Texture Rusty Metal (22819583).jpeg'),
     prep: 'Mechanically remove rust and scale around the joint. Recheck remaining thickness before welding.',
   },
   {
     name: 'Heavy Rust',
+    spriteY: 108,
     desc: 'Thick rust, pitting, or material loss.',
     image: wikiImage('Orange Rusted Metal Texture (6648763107).jpg'),
     prep: 'Do not weld over heavy corrosion. Clean to sound metal and verify that enough base material remains for a safe repair.',
   },
   {
     name: 'Painted',
+    spriteY: 270,
     desc: 'Paint or coating over the base metal.',
     image: wikiImage('White painted slightly worn scratched chipped steel metal surface seamless texture.jpg'),
     prep: 'Remove paint from the weld zone and nearby heat-affected area. Unknown coatings can create hazardous fumes.',
   },
   {
     name: 'Galvanized',
+    spriteY: 54,
     desc: 'Zinc-coated steel.',
     image: wikiImage('Galvanized surface.jpg'),
     prep: 'Remove zinc from the immediate weld zone where practical and use effective ventilation/fume controls.',
@@ -709,7 +751,14 @@ function MetalScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
           >
-            <Image source={{ uri: metal.image }} style={styles.referencePhoto} resizeMode="cover" />
+            <SpriteCrop
+              source={APPROVED_METAL_SPRITE}
+              width={62}
+              height={45}
+              spriteHeight={315}
+              y={metal.spriteY}
+              style={styles.referencePhoto}
+            />
             <Text style={styles.referenceTitle}>{metal.name}</Text>
             <Ionicons name="chevron-forward" size={22} color={TEXT} />
           </Pressable>
@@ -736,14 +785,11 @@ function ThicknessScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
           >
-            <View style={styles.thicknessSwatchFrame}>
-              <View
-                style={[
-                  styles.thicknessSwatchBar,
-                  { height: item.previewHeight },
-                ]}
-              />
-            </View>
+            <Image
+              source={APPROVED_THICKNESS}
+              style={styles.thicknessReferenceImage}
+              resizeMode="stretch"
+            />
             <View style={{ flex: 1 }}>
               <Text style={styles.referenceTitle}>{item.label}</Text>
               <Text style={styles.referenceSub}>{item.value}</Text>
@@ -773,7 +819,14 @@ function ConditionScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.conditionRow, pressed && styles.pressed]}
           >
-            <Image source={{ uri: condition.image }} style={styles.conditionPhoto} resizeMode="cover" />
+            <SpriteCrop
+              source={APPROVED_CONDITION_SPRITE}
+              width={83}
+              height={54}
+              spriteHeight={324}
+              y={condition.spriteY}
+              style={styles.conditionPhoto}
+            />
             <View style={{ flex: 1 }}>
               <Text style={styles.referenceTitle}>{condition.name}</Text>
               <Text style={styles.referenceSub}>{condition.desc}</Text>
@@ -1585,30 +1638,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   referencePhoto: {
-    width: 64,
-    height: 54,
-    borderRadius: 7,
+    width: 62,
+    height: 45,
+    borderRadius: 5,
     marginRight: 12,
     backgroundColor: '#333',
   },
-  thicknessSwatchFrame: {
-    width: 62,
-    height: 50,
-    borderRadius: 5,
-    backgroundColor: '#2b2d2f',
-    borderWidth: 1,
-    borderColor: '#55585a',
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  thicknessSwatchBar: {
-    width: 46,
-    minHeight: 2,
+  thicknessReferenceImage: {
+    width: 61,
+    height: 27,
     borderRadius: 2,
-    backgroundColor: '#b8bbb8',
-    borderWidth: 1,
-    borderColor: '#deded8',
+    marginRight: 12,
+    backgroundColor: '#777',
   },
   referenceTitle: {
     flex: 1,
@@ -1634,9 +1675,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   conditionPhoto: {
-    width: 82,
-    height: 76,
-    borderRadius: 7,
+    width: 83,
+    height: 54,
+    borderRadius: 5,
     marginRight: 12,
     backgroundColor: '#333',
   },
