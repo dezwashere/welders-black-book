@@ -31,11 +31,13 @@ type Screen =
   | 'thicknessDetail'
   | 'conditionDetail'
   | 'saved'
-  | 'project';
+  | 'project'
+  | 'weldSettings'
+  | 'weldingSymbols';
 
 
 
-type SavedKind = 'circle' | 'triangle' | 'pipe' | 'rod' | 'metal' | 'thickness' | 'condition';
+type SavedKind = 'circle' | 'triangle' | 'pipe' | 'rod' | 'metal' | 'thickness' | 'condition' | 'weldSettings';
 
 type SavedItem = {
   id: string;
@@ -1543,6 +1545,427 @@ function InfoLine({
   );
 }
 
+
+type WeldProcess = 'MIG' | 'TIG' | 'STICK';
+
+const weldProcesses: WeldProcess[] = ['MIG', 'TIG', 'STICK'];
+const weldThicknessOptions = ['24 ga', '22 ga', '20 ga', '18 ga', '16 ga', '14 ga', '1/8"', '3/16"'];
+
+const migSteelC25: Record<string, Record<string, { voltage: string; wfs: string }>> = {
+  '.024"': {
+    '24 ga': { voltage: '15.5', wfs: '90' },
+    '22 ga': { voltage: '15.5', wfs: '140' },
+    '20 ga': { voltage: '16', wfs: '170' },
+    '18 ga': { voltage: '16.5', wfs: '220' },
+    '16 ga': { voltage: '17', wfs: '250' },
+    '14 ga': { voltage: '17.5', wfs: '310' },
+    '1/8"': { voltage: '18', wfs: '380' },
+    '3/16"': { voltage: '18.5', wfs: '415' },
+  },
+  '.030"': {
+    '24 ga': { voltage: '15.5', wfs: '90' },
+    '22 ga': { voltage: '15.5', wfs: '95' },
+    '20 ga': { voltage: '16', wfs: '110' },
+    '18 ga': { voltage: '16.5', wfs: '150' },
+    '16 ga': { voltage: '17', wfs: '170' },
+    '14 ga': { voltage: '17', wfs: '165' },
+    '1/8"': { voltage: '17.5', wfs: '200' },
+    '3/16"': { voltage: '18', wfs: '225' },
+  },
+  '.035"': {
+    '24 ga': { voltage: '15.5', wfs: '70' },
+    '22 ga': { voltage: '16', wfs: '75' },
+    '20 ga': { voltage: '17', wfs: '80' },
+    '18 ga': { voltage: '18', wfs: '110' },
+    '16 ga': { voltage: '18.5', wfs: '145' },
+    '14 ga': { voltage: '19', wfs: '140' },
+    '1/8"': { voltage: '19.5', wfs: '235' },
+    '3/16"': { voltage: '19.5', wfs: '290' },
+  },
+};
+
+const tigSteelParams: Record<string, string> = {
+  '24 ga': '20–32 A',
+  '22 ga': '20–36 A',
+  '20 ga': '26–46 A',
+  '18 ga': '36–60 A',
+  '16 ga': '47–73 A',
+  '14 ga': '62–88 A',
+  '1/8"': '110–140 A',
+  '3/16"': '125–150 A',
+};
+
+const stickAmps: Record<string, Record<string, string>> = {
+  E6010: { '3/32"': '50–100 A', '1/8"': '75–125 A', '5/32"': '100–150 A', '3/16"': '150–200 A' },
+  E6011: { '3/32"': '50–100 A', '1/8"': '75–125 A', '5/32"': '100–150 A', '3/16"': '150–200 A' },
+  E6013: { '3/32"': '60–100 A', '1/8"': '90–140 A', '5/32"': '120–160 A', '3/16"': '150–200 A' },
+  E7014: { '3/32"': '70–110 A', '1/8"': '100–150 A', '5/32"': '140–180 A', '3/16"': '180–220 A' },
+  E7018: { '3/32"': '70–110 A', '1/8"': '100–150 A', '5/32"': '140–180 A', '3/16"': '180–220 A' },
+};
+
+const stickInfo: Record<string, { polarity: string; position: string; penetration: string; use: string }> = {
+  E6010: { polarity: 'DCEP', position: 'All positions', penetration: 'Deep', use: 'Fast-freeze cellulosic electrode; commonly used where deep penetration is needed.' },
+  E6011: { polarity: 'DCEP or AC', position: 'All positions', penetration: 'Deep', use: 'Useful on less-than-perfectly-clean steel, but clean the joint whenever practical.' },
+  E6013: { polarity: 'AC, DCEP or DCEN', position: 'All positions', penetration: 'Low', use: 'General-purpose electrode with a smoother, softer arc and relatively shallow penetration.' },
+  E7014: { polarity: 'AC, DCEP or DCEN', position: 'All positions', penetration: 'Medium', use: 'Iron-powder electrode known for smooth operation and higher deposition.' },
+  E7018: { polarity: 'DCEP or AC', position: 'All positions', penetration: 'Medium', use: 'Low-hydrogen electrode. Storage and handling requirements matter for code-quality work.' },
+};
+
+const weldingSymbolRows = [
+  { mark: '◢', name: 'Fillet', note: 'Triangular weld in a lap, tee, or corner joint.' },
+  { mark: 'Ⅱ', name: 'Square Groove', note: 'Square-edged groove / butt weld preparation.' },
+  { mark: 'V', name: 'V-Groove', note: 'Both members beveled to form a V.' },
+  { mark: '|/', name: 'Bevel Groove', note: 'One member square, the other beveled.' },
+  { mark: 'U', name: 'U-Groove', note: 'Curved groove preparation on both members.' },
+  { mark: 'J', name: 'J-Groove', note: 'One curved groove face and one square face.' },
+  { mark: '▭', name: 'Plug / Slot', note: 'Weld made through a circular or elongated opening.' },
+  { mark: '○', name: 'Spot / Projection', note: 'Discrete weld location rather than a continuous seam.' },
+  { mark: '═', name: 'Seam', note: 'Continuous or intermittent seam-type weld.' },
+];
+
+function WeldSettingsScreen({
+  onBack,
+  initial,
+  isSaved,
+  onToggleSave,
+}: {
+  onBack: () => void;
+  initial?: SavedItem | null;
+  isSaved: (item: SavedItem) => boolean;
+  onToggleSave: (item: SavedItem) => void;
+}) {
+  const initialProcessValue = initial?.kind === 'weldSettings' ? String(initial.payload.process ?? 'MIG') : 'MIG';
+  const initialProcess: WeldProcess = weldProcesses.includes(initialProcessValue as WeldProcess)
+    ? initialProcessValue as WeldProcess
+    : 'MIG';
+
+  const [viewMode, setViewMode] = useState(0);
+  const [process, setProcess] = useState<WeldProcess>(initialProcess);
+  const [migThickness, setMigThickness] = useState(
+    initial?.kind === 'weldSettings' && initialProcess === 'MIG'
+      ? String(initial.payload.thickness ?? '1/8"')
+      : '1/8"'
+  );
+  const [migWire, setMigWire] = useState(
+    initial?.kind === 'weldSettings' && initialProcess === 'MIG'
+      ? String(initial.payload.wireDiameter ?? '.030"')
+      : '.030"'
+  );
+  const [tigMaterial, setTigMaterial] = useState(
+    initial?.kind === 'weldSettings' && initialProcess === 'TIG'
+      ? String(initial.payload.material ?? 'Steel')
+      : 'Steel'
+  );
+  const [tigThickness, setTigThickness] = useState(
+    initial?.kind === 'weldSettings' && initialProcess === 'TIG'
+      ? String(initial.payload.thickness ?? '1/8"')
+      : '1/8"'
+  );
+  const [tigTungsten, setTigTungsten] = useState(
+    initial?.kind === 'weldSettings' && initialProcess === 'TIG'
+      ? String(initial.payload.tungsten ?? '3/32"')
+      : '3/32"'
+  );
+  const [stickElectrode, setStickElectrode] = useState(
+    initial?.kind === 'weldSettings' && initialProcess === 'STICK'
+      ? String(initial.payload.electrode ?? 'E7018')
+      : 'E7018'
+  );
+  const [stickDiameter, setStickDiameter] = useState(
+    initial?.kind === 'weldSettings' && initialProcess === 'STICK'
+      ? String(initial.payload.diameter ?? '1/8"')
+      : '1/8"'
+  );
+
+  const migSetting = migSteelC25[migWire]?.[migThickness] ?? migSteelC25['.030"']['1/8"'];
+  const tigAmps = tigSteelParams[tigThickness] ?? '110–140 A';
+  const stickAmp = stickAmps[stickElectrode]?.[stickDiameter] ?? 'See electrode data';
+  const stick = stickInfo[stickElectrode] ?? stickInfo.E7018;
+
+  const savedItem =
+    process === 'MIG'
+      ? makeSavedItem(
+          'weldSettings',
+          'MIG • Mild Steel • ' + migThickness,
+          migSetting.voltage + ' V • ' + migSetting.wfs + ' ipm • ' + migWire,
+          {
+            process: 'MIG',
+            material: 'Mild Steel',
+            thickness: migThickness,
+            wire: 'ER70S-6',
+            wireDiameter: migWire,
+            voltage: migSetting.voltage + ' V',
+            wireFeed: migSetting.wfs + ' ipm',
+            polarity: 'DCEP',
+            gas: 'C25 (75% Ar / 25% CO₂), 20–30 CFH',
+          }
+        )
+      : process === 'TIG'
+        ? makeSavedItem(
+            'weldSettings',
+            'TIG • ' + tigMaterial + ' • ' + tigThickness,
+            tigAmps + ' • ' + tigTungsten + ' tungsten',
+            {
+              process: 'TIG',
+              material: tigMaterial,
+              thickness: tigThickness,
+              tungsten: tigTungsten,
+              amperage: tigAmps,
+              polarity: 'DCEN',
+              gas: 'Argon, 20–30 CFH (table starting point)',
+            }
+          )
+        : makeSavedItem(
+            'weldSettings',
+            'STICK • ' + stickElectrode + ' • ' + stickDiameter,
+            stickAmp + ' • ' + stick.polarity,
+            {
+              process: 'STICK',
+              electrode: stickElectrode,
+              diameter: stickDiameter,
+              amperage: stickAmp,
+              polarity: stick.polarity,
+              position: stick.position,
+              penetration: stick.penetration,
+            }
+          );
+
+  return (
+    <>
+      <Header title="WELD SETTINGS" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <Segment labels={['CALCULATOR', 'REFERENCE']} active={viewMode} onChange={setViewMode} />
+        <Segment
+          labels={weldProcesses}
+          active={weldProcesses.indexOf(process)}
+          onChange={(index) => setProcess(weldProcesses[index])}
+        />
+
+        {viewMode === 0 ? (
+          <>
+            {process === 'MIG' ? (
+              <>
+                <View style={styles.weldGuideIntro}>
+                  <Text style={styles.weldGuideIntroTitle}>MIG · STEEL / SOLID WIRE / C25</Text>
+                  <Text style={styles.weldGuideIntroText}>
+                    Published Miller starting parameters for ER70S-6 steel wire with DCEP and C25 shielding gas.
+                  </Text>
+                </View>
+                <SelectorRow label="MATERIAL THICKNESS" value={migThickness} options={weldThicknessOptions} onChange={setMigThickness} />
+                <SelectorRow label="WIRE DIAMETER" value={migWire} options={['.024"', '.030"', '.035"']} onChange={setMigWire} />
+                <View style={styles.infoCard}>
+                  <InfoLine label="Wire" value="ER70S-6 solid wire" />
+                  <InfoLine label="Voltage" value={migSetting.voltage + ' V'} />
+                  <InfoLine label="Wire Feed" value={migSetting.wfs + ' ipm'} />
+                  <InfoLine label="Polarity" value="DCEP" />
+                  <InfoLine label="Shielding Gas" value="C25 · 75% Ar / 25% CO₂" />
+                  <InfoLine label="Gas Flow" value="20–30 CFH" />
+                </View>
+              </>
+            ) : process === 'TIG' ? (
+              <>
+                <View style={styles.weldGuideIntro}>
+                  <Text style={styles.weldGuideIntroTitle}>TIG · STEEL / STAINLESS / CHROMOLY</Text>
+                  <Text style={styles.weldGuideIntroText}>
+                    Miller published DC TIG starting ranges. Aluminum uses AC and requires a different parameter set.
+                  </Text>
+                </View>
+                <SelectorRow label="MATERIAL" value={tigMaterial} options={['Steel', 'Stainless Steel', 'Chromoly']} onChange={setTigMaterial} />
+                <SelectorRow label="MATERIAL THICKNESS" value={tigThickness} options={weldThicknessOptions} onChange={setTigThickness} />
+                <SelectorRow label="TUNGSTEN DIAMETER" value={tigTungsten} options={['1/16"', '3/32"']} onChange={setTigTungsten} />
+                <View style={styles.infoCard}>
+                  <InfoLine label="Amperage" value={tigAmps} />
+                  <InfoLine label="Polarity" value="DCEN" />
+                  <InfoLine label="Shielding Gas" value="Argon" />
+                  <InfoLine label="Gas Flow" value="20–30 CFH" />
+                  <InfoLine label="Tungsten" value={tigTungsten} />
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.weldGuideIntro}>
+                  <Text style={styles.weldGuideIntroTitle}>STICK · ELECTRODE AMPERAGE</Text>
+                  <Text style={styles.weldGuideIntroText}>
+                    Miller electrode/amperage ranges with polarity, position, and penetration guidance.
+                  </Text>
+                </View>
+                <SelectorRow label="ELECTRODE" value={stickElectrode} options={['E6010', 'E6011', 'E6013', 'E7014', 'E7018']} onChange={setStickElectrode} />
+                <SelectorRow label="ELECTRODE DIAMETER" value={stickDiameter} options={['3/32"', '1/8"', '5/32"', '3/16"']} onChange={setStickDiameter} />
+                <View style={styles.infoCard}>
+                  <InfoLine label="Amperage" value={stickAmp} />
+                  <InfoLine label="Polarity" value={stick.polarity} />
+                  <InfoLine label="Position" value={stick.position} />
+                  <InfoLine label="Penetration" value={stick.penetration} />
+                  <InfoLine label="Use / Notes" value={stick.use} multiline />
+                </View>
+              </>
+            )}
+
+            <SaveButton
+              saved={isSaved(savedItem)}
+              editing={Boolean(initial)}
+              onPress={() => onToggleSave(savedItem)}
+            />
+
+            <View style={styles.weldCaution}>
+              <Ionicons name="information-circle-outline" size={20} color={BLACK} />
+              <Text style={styles.weldCautionText}>
+                STARTING POINTS ONLY · Confirm the machine chart, WPS, filler/electrode manufacturer data, joint design, position, and job requirements before welding.
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            {process === 'MIG' ? (
+              <>
+                <View style={styles.weldGuideCard}>
+                  <Text style={styles.weldGuideTitle}>MIG QUICK REFERENCE</Text>
+                  <Text style={styles.weldGuideBody}>
+                    For steel with solid wire, Miller’s general rule of thumb starts near 1 amp per .001 inch of material thickness. Voltage is machine- and application-dependent; use the machine chart and tune for a crisp, stable arc.
+                  </Text>
+                </View>
+                {[
+                  ['.023"', '30–130 A', '3.5 ipm per amp'],
+                  ['.030"', '40–145 A', '2.0 ipm per amp'],
+                  ['.035"', '50–180 A', '1.6 ipm per amp'],
+                  ['.045"', '75–250 A', '1.0 ipm per amp'],
+                ].map((row) => (
+                  <View key={row[0]} style={styles.weldReferenceRow}>
+                    <Text style={styles.weldReferenceKey}>{row[0]}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.weldReferenceValue}>{row[1]}</Text>
+                      <Text style={styles.referenceSub}>{row[2]}</Text>
+                    </View>
+                  </View>
+                ))}
+                <View style={styles.weldGuideCard}>
+                  <Text style={styles.weldGuideTitle}>COMMON STEEL SETUP</Text>
+                  <Text style={styles.weldGuideBody}>ER70S-6 solid wire · DCEP · C25 (75% argon / 25% CO₂). C25 generally gives lower spatter and a smoother bead than straight CO₂.</Text>
+                </View>
+              </>
+            ) : process === 'TIG' ? (
+              <>
+                <View style={styles.weldGuideCard}>
+                  <Text style={styles.weldGuideTitle}>TIG QUICK REFERENCE</Text>
+                  <Text style={styles.weldGuideBody}>Steel, stainless, and chromoly: DCEN with argon. Aluminum: AC. Keep the tungsten and filler clean and use the machine/WPS guidance for the exact alloy and joint.</Text>
+                </View>
+                {weldThicknessOptions.map((thickness) => (
+                  <View key={thickness} style={styles.weldReferenceRow}>
+                    <Text style={styles.weldReferenceKey}>{thickness}</Text>
+                    <Text style={styles.weldReferenceValue}>{tigSteelParams[thickness]}</Text>
+                  </View>
+                ))}
+                <View style={styles.weldGuideCard}>
+                  <Text style={styles.weldGuideTitle}>TUNGSTEN / GAS</Text>
+                  <Text style={styles.weldGuideBody}>The Miller table uses 1/16 or 3/32 in tungsten with argon. General TIG guidance commonly uses 3/32 in tungsten for a broad working range; match tungsten size to current and machine instructions.</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.weldGuideCard}>
+                  <Text style={styles.weldGuideTitle}>STICK ELECTRODE BEHAVIOR</Text>
+                  <Text style={styles.weldGuideBody}>Select an electrode for the base metal, position, penetration, hydrogen requirements, and power source—not amperage alone.</Text>
+                </View>
+                {Object.entries(stickInfo).map(([electrode, info]) => (
+                  <View key={electrode} style={styles.weldGuideCard}>
+                    <Text style={styles.weldGuideTitle}>{electrode}</Text>
+                    <InfoLine label="Polarity" value={info.polarity} />
+                    <InfoLine label="Position" value={info.position} />
+                    <InfoLine label="Penetration" value={info.penetration} />
+                    <Text style={styles.weldGuideBody}>{info.use}</Text>
+                  </View>
+                ))}
+              </>
+            )}
+          </>
+        )}
+      </ScrollView>
+    </>
+  );
+}
+
+function WeldingSymbolsScreen({ onBack }: { onBack: () => void }) {
+  return (
+    <>
+      <Header title="WELDING SYMBOLS" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.weldGuideIntro}>
+          <Text style={styles.weldGuideIntroTitle}>AWS / ISO QUICK REFERENCE</Text>
+          <Text style={styles.weldGuideIntroText}>
+            Use this to read drawings quickly. Always confirm which drawing standard and edition the job uses.
+          </Text>
+        </View>
+
+        <View style={styles.weldGuideCard}>
+          <Text style={styles.weldGuideTitle}>AWS SYMBOL ANATOMY</Text>
+          <View style={styles.weldAnatomy}>
+            <Text style={styles.weldAnatomyOther}>OTHER SIDE · symbols above line</Text>
+            <View style={styles.weldAnatomyLine}>
+              <Text style={styles.weldAnatomyGlyph}>◢</Text>
+            </View>
+            <Text style={styles.weldAnatomyArrow}>ARROW SIDE · symbols below line</Text>
+          </View>
+          <Text style={styles.weldGuideBody}>
+            The arrow points to the joint. The horizontal reference line carries weld information. In AWS convention, information below the reference line applies to the arrow side; information above applies to the other side. The tail can carry a process, specification, WPS, or other reference.
+          </Text>
+        </View>
+
+        <Text style={styles.weldSectionTitle}>COMMON WELD SYMBOLS</Text>
+        {weldingSymbolRows.map((item) => (
+          <View key={item.name} style={styles.weldSymbolCard}>
+            <View style={styles.weldSymbolMarkBox}>
+              <Text style={styles.weldSymbolMark}>{item.mark}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.weldSymbolName}>{item.name}</Text>
+              <Text style={styles.referenceSub}>{item.note}</Text>
+            </View>
+          </View>
+        ))}
+
+        <Text style={styles.weldSectionTitle}>SUPPLEMENTARY INFORMATION</Text>
+        <View style={styles.weldGuideCard}>
+          <InfoLine label="All Around" value="Circle at the arrow/reference-line junction: weld continuously around the joint." multiline />
+          <InfoLine label="Field Weld" value="Flag at the arrow/reference-line junction: weld is to be made in the field rather than the shop." multiline />
+          <InfoLine label="Contour" value="Flush/flat, convex, or concave contour may be specified; a finish method letter can accompany it." multiline />
+          <InfoLine label="Dimensions" value="Size/depth is generally placed to the left of the weld symbol; length and pitch are generally placed to the right." multiline />
+          <InfoLine label="Tail" value="May identify the welding process, procedure/specification, or other reference; it can be omitted when no reference is needed." multiline />
+        </View>
+
+        <Text style={styles.weldSectionTitle}>POSITIONS</Text>
+        {[
+          ['1G / 1F', 'Flat'],
+          ['2G / 2F', 'Horizontal'],
+          ['3G / 3F', 'Vertical'],
+          ['4G / 4F', 'Overhead'],
+          ['5G', 'Fixed horizontal pipe; weld progresses around the pipe'],
+          ['6G', 'Fixed pipe at about 45°; welder transitions through multiple positions'],
+        ].map((row) => (
+          <View key={row[0]} style={styles.weldReferenceRow}>
+            <Text style={styles.weldReferenceKey}>{row[0]}</Text>
+            <Text style={styles.weldReferenceValue}>{row[1]}</Text>
+          </View>
+        ))}
+        <Text style={styles.referenceSub}>G = groove weld. F = fillet weld. Position designations are commonly used for qualification/test positions; code requirements control actual qualification ranges.</Text>
+
+        <Text style={styles.weldSectionTitle}>ISO 2553 DIFFERENCE</Text>
+        <View style={styles.weldGuideCard}>
+          <Text style={styles.weldGuideBody}>
+            ISO 2553 recognizes two representation systems. System A uses a dual reference-line approach; System B uses a single reference line. Do not assume an AWS arrow-side/other-side placement rule applies to an ISO drawing without confirming the system used.
+          </Text>
+        </View>
+
+        <View style={styles.weldCaution}>
+          <Ionicons name="book-outline" size={20} color={BLACK} />
+          <Text style={styles.weldCautionText}>
+            QUICK REFERENCE · For fabrication to a code, contract drawing, or WPS, the governing document takes precedence over this app.
+          </Text>
+        </View>
+      </ScrollView>
+    </>
+  );
+}
+
 function MetalScreen({
   onBack,
   onSelect,
@@ -2101,6 +2524,36 @@ export default function App() {
     );
   }
 
+  if (screen === 'weldSettings') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <WeldSettingsScreen
+          onBack={backFromOpenedSaved}
+          initial={openedSaved?.kind === 'weldSettings' ? openedSaved : null}
+          isSaved={isSaved}
+          onToggleSave={toggleSave}
+        />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (screen === 'weldingSymbols') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <WeldingSymbolsScreen onBack={goHome} />
+      </SafeAreaView>
+    );
+  }
+
   if (screen === 'metal') {
     return (
       <SafeAreaView style={styles.safe}>
@@ -2304,6 +2757,20 @@ export default function App() {
           iconColor="#ff8a2b"
           title="WELDING ROD SELECTOR"
           onPress={() => { setOpenedSaved(null); setScreen('rod'); }}
+        />
+        <HomeButton
+          icon="speedometer-outline"
+          iconColor="#67d6a3"
+          title="WELD SETTINGS"
+          subtitle="MIG / TIG / STICK"
+          onPress={() => { setOpenedSaved(null); setScreen('weldSettings'); }}
+        />
+        <HomeButton
+          icon="reader-outline"
+          iconColor="#7fc8ff"
+          title="WELDING SYMBOLS"
+          subtitle="AWS / ISO QUICK REFERENCE"
+          onPress={() => { setOpenedSaved(null); setScreen('weldingSymbols'); }}
         />
         <HomeButton
           icon="layers-outline"
@@ -2657,7 +3124,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: CARD,
+    backgroundColor: PANEL,
   },
   pipeRegionButtonActive: {
     backgroundColor: YELLOW,
@@ -3617,4 +4084,163 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 11,
   },
+  weldGuideIntro: {
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    marginBottom: 14,
+  },
+  weldGuideIntroTitle: {
+    color: YELLOW,
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    marginBottom: 5,
+  },
+  weldGuideIntroText: {
+    color: TEXT,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  weldGuideCard: {
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    marginBottom: 10,
+  },
+  weldGuideTitle: {
+    color: TEXT,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+    marginBottom: 7,
+  },
+  weldGuideBody: {
+    color: MUTED,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  weldReferenceRow: {
+    minHeight: 58,
+    backgroundColor: PANEL,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginBottom: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  weldReferenceKey: {
+    width: 84,
+    color: YELLOW,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  weldReferenceValue: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  weldCaution: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9,
+    backgroundColor: YELLOW,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 14,
+  },
+  weldCautionText: {
+    flex: 1,
+    color: BLACK,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '800',
+  },
+  weldSectionTitle: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    marginTop: 15,
+    marginBottom: 9,
+  },
+  weldAnatomy: {
+    minHeight: 122,
+    justifyContent: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  weldAnatomyOther: {
+    color: MUTED,
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  weldAnatomyLine: {
+    height: 3,
+    backgroundColor: TEXT,
+    position: 'relative',
+    marginHorizontal: 8,
+  },
+  weldAnatomyGlyph: {
+    position: 'absolute',
+    left: '48%',
+    top: -2,
+    color: YELLOW,
+    fontSize: 30,
+    lineHeight: 32,
+    transform: [{ translateY: 0 }],
+  },
+  weldAnatomyArrow: {
+    color: MUTED,
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginTop: 30,
+  },
+  weldSymbolCard: {
+    minHeight: 72,
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  weldSymbolMarkBox: {
+    width: 54,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: PANEL_DARK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weldSymbolMark: {
+    color: YELLOW,
+    fontSize: 25,
+    fontWeight: '900',
+  },
+  weldSymbolName: {
+    color: TEXT,
+    fontSize: 15,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+
 });
