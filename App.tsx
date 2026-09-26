@@ -1486,12 +1486,6 @@ function RodScreen({
             <Text style={[styles.pipeRegionText, unitSystem === 'EU' && styles.pipeRegionTextActive]}>EU / METRIC</Text>
           </Pressable>
         </View>
-        {unitSystem === 'US' ? (
-          <View style={styles.weldGuideCard}>
-            <Text style={styles.weldGuideTitle}>US STEEL SHEET GAUGE</Text>
-            <Text style={styles.weldGuideBody}>Gauge thickness here is for common steel sheet reference. Aluminum, stainless and other materials can use different gauge-to-thickness conventions; use the actual measured thickness when it matters.</Text>
-          </View>
-        ) : null}
         {unitSystem === 'EU' ? (
           <View style={styles.metricModeBanner}>
             <Ionicons name="information-circle-outline" size={20} color={BLACK} />
@@ -2065,7 +2059,7 @@ function MetalScreen({
   onSelect,
 }: {
   onBack: () => void;
-  onSelect: (index: number, unitSystem: 'US' | 'EU') => void;
+  onSelect: (index: number) => void;
 }) {
   return (
     <>
@@ -2092,7 +2086,7 @@ function ThicknessScreen({
   onSelect,
 }: {
   onBack: () => void;
-  onSelect: (index: number) => void;
+  onSelect: (index: number, unitSystem: 'US' | 'EU') => void;
 }) {
   const [unitSystem, setUnitSystem] = useState<'US' | 'EU'>('US');
   const items = unitSystem === 'EU' ? metricThicknesses : thicknesses;
@@ -2111,6 +2105,12 @@ function ThicknessScreen({
             <Text style={[styles.pipeRegionSub, unitSystem === 'EU' && styles.pipeRegionTextActive]}>Native mm thickness</Text>
           </Pressable>
         </View>
+        {unitSystem === 'US' ? (
+          <View style={styles.weldGuideCard}>
+            <Text style={styles.weldGuideTitle}>US STEEL SHEET GAUGE</Text>
+            <Text style={styles.weldGuideBody}>Gauge thickness here is for common steel sheet reference. Aluminum, stainless and other materials can use different gauge-to-thickness conventions; use the actual measured thickness when it matters.</Text>
+          </View>
+        ) : null}
         {unitSystem === 'EU' ? (
           <View style={styles.metricModeBanner}>
             <Ionicons name="information-circle-outline" size={20} color={BLACK} />
