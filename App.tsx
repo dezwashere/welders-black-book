@@ -2344,7 +2344,6 @@ function ConditionDetailScreen({
           saved={isSaved(savedItem)}
           onPress={() => onToggleSave(savedItem)}
         />
-        <Text style={styles.photoSource}>Reference photo: Wikimedia Commons</Text>
       </ScrollView>
     </>
   );
