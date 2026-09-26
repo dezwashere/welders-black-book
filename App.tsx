@@ -435,26 +435,28 @@ function Segment({
 function SaveButton({
   saved,
   onPress,
+  editing = false,
 }: {
   saved: boolean;
   onPress: () => void;
+  editing?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.saveButton,
-        saved && styles.saveButtonSaved,
+        (saved || editing) && styles.saveButtonSaved,
         pressed && styles.pressed,
       ]}
     >
       <Ionicons
-        name={saved ? 'bookmark' : 'bookmark-outline'}
+        name={saved || editing ? 'checkmark-circle-outline' : 'bookmark-outline'}
         size={20}
-        color={saved ? BLACK : TEXT}
+        color={saved || editing ? BLACK : TEXT}
       />
-      <Text style={[styles.saveButtonText, saved && styles.saveButtonTextSaved]}>
-        {saved ? 'SAVED' : 'SAVE'}
+      <Text style={[styles.saveButtonText, (saved || editing) && styles.saveButtonTextSaved]}>
+        {editing ? 'UPDATE SAVED ITEM' : saved ? 'SAVED' : 'SAVE'}
       </Text>
     </Pressable>
   );
@@ -577,7 +579,7 @@ function SavedScreen({
                     />
                     <View style={styles.savedActions}>
                       <Pressable onPress={() => onOpen(item)} style={styles.savedActionPrimary}>
-                        <Text style={styles.savedActionPrimaryText}>OPEN</Text>
+                        <Text style={styles.savedActionPrimaryText}>EDIT</Text>
                       </Pressable>
                       <Pressable onPress={() => onShare(item)} style={styles.savedActionSecondary}>
                         <Ionicons name="share-outline" size={18} color={TEXT} />
@@ -866,6 +868,7 @@ function CircleScreen({
 
         <SaveButton
           saved={isSaved(savedItem)}
+          editing={Boolean(initial)}
           onPress={() => onToggleSave(savedItem)}
         />
 
@@ -939,6 +942,7 @@ function TriangleScreen({
 
         <SaveButton
           saved={isSaved(savedItem)}
+          editing={Boolean(initial)}
           onPress={() => onToggleSave(savedItem)}
         />
 
@@ -1017,15 +1021,13 @@ function PipeScreen({
 
   return (
     <>
-      <Header title="PIPE / TUBE SIZES" onBack={onBack} />
+      <Header title="PIPE SIZES" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Segment labels={['Standard Pipe', 'Custom / Tube', 'Slip Fit']} active={tab} onChange={setTab} />
+        <Segment labels={['PIPE', 'TUBE / CUSTOM', 'SLIP FIT']} active={tab} onChange={setTab} />
 
         {tab === 0 ? (
           <>
-            <Text style={styles.pipeReferenceNote}>
-              Standard steel pipe dimensions use NPS and schedule. OD and wall thickness are standard values; ID is calculated from them.
-            </Text>
+            <Text style={styles.pipeReferenceNote}>SELECT PIPE SIZE</Text>
             <SelectorRow label="NPS / NB" value={nps} options={standardPipeData.map((pipe) => pipe.nps)} onChange={setNps} />
             <SelectorRow label="SCHEDULE" value={schedule} options={['10', '40', '80']} onChange={setSchedule} />
             <View style={styles.infoCard}>
@@ -1037,9 +1039,7 @@ function PipeScreen({
           </>
         ) : tab === 1 ? (
           <>
-            <Text style={styles.pipeReferenceNote}>
-              For tubing or a custom fabricated size, enter actual OD and wall thickness. ID is calculated automatically.
-            </Text>
+            <Text style={styles.pipeReferenceNote}>ENTER ACTUAL TUBE DIMENSIONS</Text>
             <Text style={styles.selectorLabel}>OUTSIDE DIAMETER (IN)</Text>
             <TextInput value={tubeOd} onChangeText={setTubeOd} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
             <Text style={styles.selectorLabel}>WALL THICKNESS (IN)</Text>
@@ -1050,9 +1050,7 @@ function PipeScreen({
           </>
         ) : (
           <>
-            <Text style={styles.pipeReferenceNote}>
-              Slip fit uses the actual outside diameter of the inner piece plus the desired diametral clearance.
-            </Text>
+            <Text style={styles.pipeReferenceNote}>SLIP FIT CALCULATOR</Text>
             <Text style={styles.selectorLabel}>INNER PIECE OD (IN)</Text>
             <TextInput value={slipOd} onChangeText={setSlipOd} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
             <Text style={styles.selectorLabel}>DIAMETRAL CLEARANCE (IN)</Text>
@@ -1063,7 +1061,7 @@ function PipeScreen({
           </>
         )}
 
-        <SaveButton saved={isSaved(savedItem)} onPress={() => onToggleSave(savedItem)} />
+        <SaveButton saved={isSaved(savedItem)} editing={Boolean(initial)} onPress={() => onToggleSave(savedItem)} />
       </ScrollView>
     </>
   );
@@ -1286,6 +1284,7 @@ function RodScreen({
         </View>
         <SaveButton
           saved={isSaved(savedItem)}
+          editing={Boolean(initial)}
           onPress={() => onToggleSave(savedItem)}
         />
       </ScrollView>
@@ -1628,6 +1627,18 @@ export default function App() {
   });
 
   const toggleSave = (item: SavedItem) => {
+    if (openedSaved) {
+      const updated: SavedItem = {
+        ...item,
+        id: openedSaved.id,
+        notes: openedSaved.notes,
+      };
+      setSavedItems((current) =>
+        current.map((saved) => saved.id === openedSaved.id ? updated : saved)
+      );
+      setOpenedSaved(updated);
+      return;
+    }
     setPendingSave(freshSaveCopy(item));
   };
 
