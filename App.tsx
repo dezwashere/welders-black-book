@@ -34,7 +34,7 @@ type Screen =
 
 
 
-type SavedKind = 'circle' | 'triangle' | 'rod' | 'metal' | 'thickness' | 'condition';
+type SavedKind = 'circle' | 'triangle' | 'rod' | 'metal' | 'thickness' | 'condition' | 'setup';
 
 type SavedItem = {
   id: string;
@@ -43,6 +43,7 @@ type SavedItem = {
   title: string;
   subtitle: string;
   payload: Record<string, string | number>;
+  parts?: SavedItem[];
 };
 
 const SAVED_KEY = 'wbb_saved_items_v1';
@@ -391,17 +392,51 @@ function SavedScreen({
   onOpen,
   onShare,
   onDelete,
+  onCombine,
 }: {
   items: SavedItem[];
   onBack: () => void;
   onOpen: (item: SavedItem) => void;
   onShare: (item: SavedItem) => void;
   onDelete: (item: SavedItem) => void;
+  onCombine: (items: SavedItem[]) => void;
 }) {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((value) => value !== id) : [...current, id]
+    );
+  };
+
+  const selectedItems = items.filter(
+    (item) => item.kind !== 'setup' && selectedIds.includes(item.id)
+  );
+
   return (
     <>
       <Header title="SAVED" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.savedIntro}>
+          <Text style={styles.savedIntroTitle}>SAVED ITEMS</Text>
+          <Text style={styles.savedIntroText}>
+            Select two or more saved measurements, metals, thicknesses, conditions, or welding setups to keep them together as one saved item.
+          </Text>
+        </View>
+
+        {selectedItems.length >= 2 ? (
+          <Pressable
+            onPress={() => {
+              onCombine(selectedItems);
+              setSelectedIds([]);
+            }}
+            style={styles.combineButton}
+          >
+            <Ionicons name="albums-outline" size={20} color={BLACK} />
+            <Text style={styles.combineButtonText}>SAVE {selectedItems.length} ITEMS TOGETHER</Text>
+          </Pressable>
+        ) : null}
+
         {items.length === 0 ? (
           <View style={styles.emptySaved}>
             <Ionicons name="bookmark-outline" size={44} color={MUTED} />
@@ -411,28 +446,60 @@ function SavedScreen({
             </Text>
           </View>
         ) : (
-          items.map((item) => (
-            <View key={item.id} style={styles.savedCard}>
-              <View style={styles.savedCardTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.savedCardTitle}>{item.title}</Text>
-                  <Text style={styles.savedCardSub}>{item.subtitle}</Text>
+          items.map((item) => {
+            const selected = selectedIds.includes(item.id);
+            const isSetup = item.kind === 'setup';
+            return (
+              <View key={item.id} style={[styles.savedCard, selected && styles.savedCardSelected]}>
+                <View style={styles.savedCardTop}>
+                  {!isSetup ? (
+                    <Pressable
+                      onPress={() => toggleSelected(item.id)}
+                      hitSlop={8}
+                      style={[styles.savedCheck, selected && styles.savedCheckSelected]}
+                    >
+                      {selected ? <Ionicons name="checkmark" size={18} color={BLACK} /> : null}
+                    </Pressable>
+                  ) : (
+                    <View style={styles.savedSetupIcon}>
+                      <Ionicons name="albums-outline" size={19} color={YELLOW} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.savedCardTitle}>{item.title}</Text>
+                    <Text style={styles.savedCardSub}>{item.subtitle}</Text>
+                    {isSetup && item.parts ? (
+                      <View style={styles.savedParts}>
+                        {item.parts.map((part) => (
+                          <View key={part.id} style={styles.savedPartRow}>
+                            <Text style={styles.savedPartKind}>{part.kind.toUpperCase()}</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.savedPartTitle}>{part.title}</Text>
+                              <Text style={styles.savedPartSub}>{part.subtitle}</Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                  </View>
+                  <Pressable onPress={() => onDelete(item)} hitSlop={10} style={styles.savedDelete}>
+                    <Ionicons name="trash-outline" size={20} color={MUTED} />
+                  </Pressable>
                 </View>
-                <Pressable onPress={() => onDelete(item)} hitSlop={10} style={styles.savedDelete}>
-                  <Ionicons name="trash-outline" size={20} color={MUTED} />
-                </Pressable>
+                <View style={styles.savedActions}>
+                  {!isSetup ? (
+                    <Pressable onPress={() => onOpen(item)} style={styles.savedActionPrimary}>
+                      <Text style={styles.savedActionPrimaryText}>OPEN</Text>
+                    </Pressable>
+                  ) : null}
+                  <Pressable onPress={() => onShare(item)} style={styles.savedActionSecondary}>
+                    <Ionicons name="share-outline" size={18} color={TEXT} />
+                    <Text style={styles.savedActionSecondaryText}>SHARE</Text>
+                  </Pressable>
+                </View>
               </View>
-              <View style={styles.savedActions}>
-                <Pressable onPress={() => onOpen(item)} style={styles.savedActionPrimary}>
-                  <Text style={styles.savedActionPrimaryText}>OPEN</Text>
-                </Pressable>
-                <Pressable onPress={() => onShare(item)} style={styles.savedActionSecondary}>
-                  <Ionicons name="share-outline" size={18} color={TEXT} />
-                  <Text style={styles.savedActionSecondaryText}>SHARE</Text>
-                </Pressable>
-              </View>
-            </View>
-          ))
+            );
+          })
         )}
       </ScrollView>
     </>
@@ -1108,7 +1175,27 @@ export default function App() {
     setSavedItems((current) => current.filter((saved) => saved.id !== item.id));
   };
 
+  const combineSaved = (parts: SavedItem[]) => {
+    if (parts.length < 2) return;
+    const title = parts
+      .map((part) => part.title)
+      .slice(0, 2)
+      .join(' + ');
+    const extra = parts.length > 2 ? ` + ${parts.length - 2} more` : '';
+    const setup: SavedItem = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      signature: `setup|${parts.map((part) => part.signature).sort().join('|')}`,
+      kind: 'setup',
+      title: title + extra,
+      subtitle: `${parts.length} saved details in one setup`,
+      payload: { count: parts.length },
+      parts,
+    };
+    setSavedItems((current) => [setup, ...current]);
+  };
+
   const openSaved = (item: SavedItem) => {
+    if (item.kind === 'setup') return;
     setOpenedSaved(item);
 
     if (item.kind === 'metal') {
@@ -1140,6 +1227,7 @@ export default function App() {
           title: item.title,
           subtitle: item.subtitle,
           payload: item.payload,
+          parts: item.parts,
         }),
       });
 
@@ -1293,6 +1381,7 @@ export default function App() {
           onOpen={openSaved}
           onShare={shareSaved}
           onDelete={deleteSaved}
+          onCombine={combineSaved}
         />
       </SafeAreaView>
     );
@@ -1308,20 +1397,27 @@ export default function App() {
             <Text style={styles.brand}>BLACK BOOK</Text>
           </View>
           <View style={styles.homeHeaderActions}>
-            <Pressable onPress={() => setScreen('saved')} hitSlop={10} style={styles.savedHeaderButton}>
-              <Ionicons name="bookmark-outline" size={20} color={TEXT} />
-              <Text style={styles.savedHeaderText}>SAVED</Text>
-              {savedItems.length > 0 ? (
-                <View style={styles.savedCount}>
-                  <Text style={styles.savedCountText}>{savedItems.length}</Text>
-                </View>
-              ) : null}
-            </Pressable>
             <Pressable hitSlop={12} style={styles.settingsButton}>
               <Ionicons name="settings-outline" size={28} color={TEXT} />
             </Pressable>
           </View>
         </View>
+
+        <Pressable
+          onPress={() => setScreen('saved')}
+          style={({ pressed }) => [styles.savedHomeTile, pressed && styles.pressed]}
+        >
+          <View style={styles.savedHomeIcon}>
+            <Ionicons name="bookmark" size={32} color={TEXT} />
+          </View>
+          <View style={styles.savedHomeTextWrap}>
+            <Text style={styles.savedHomeTitle}>SAVED</Text>
+            <Text style={styles.savedHomeSubtitle}>
+              {savedItems.length === 1 ? '1 saved item' : `${savedItems.length} saved items`}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={26} color={TEXT} />
+        </Pressable>
 
         <HomeButton
           icon="ellipse-outline"
@@ -2055,5 +2151,130 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: 14,
     fontWeight: '900',
+  },
+  savedHomeTile: {
+    minHeight: 82,
+    backgroundColor: '#3b3d3f',
+    borderRadius: 10,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#5a5d5f',
+  },
+  savedHomeIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 8,
+    backgroundColor: '#56595b',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  savedHomeTextWrap: {
+    flex: 1,
+    paddingLeft: 14,
+  },
+  savedHomeTitle: {
+    color: TEXT,
+    fontSize: 19,
+    fontWeight: '900',
+  },
+  savedHomeSubtitle: {
+    color: '#d1d1cd',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  savedIntro: {
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    marginBottom: 12,
+  },
+  savedIntroTitle: {
+    color: TEXT,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  savedIntroText: {
+    color: MUTED,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 5,
+  },
+  combineButton: {
+    minHeight: 50,
+    backgroundColor: YELLOW,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: YELLOW_DARK,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  combineButtonText: {
+    color: BLACK,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  savedCardSelected: {
+    borderColor: YELLOW,
+    borderWidth: 2,
+  },
+  savedCheck: {
+    width: 26,
+    height: 26,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#6a6d6f',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  savedCheckSelected: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
+  },
+  savedSetupIcon: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  savedParts: {
+    marginTop: 12,
+    gap: 7,
+  },
+  savedPartRow: {
+    backgroundColor: PANEL_DARK,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 9,
+    flexDirection: 'row',
+    gap: 9,
+  },
+  savedPartKind: {
+    width: 68,
+    color: YELLOW,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  savedPartTitle: {
+    color: TEXT,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  savedPartSub: {
+    color: MUTED,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 2,
   },
 });
