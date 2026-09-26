@@ -922,18 +922,7 @@ function ConditionScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.conditionRow, pressed && styles.pressed]}
           >
-            {condition.name === 'Moderate Rust' || condition.name === 'Heavy Rust' ? (
-              <Image source={{ uri: condition.image }} style={styles.conditionPhoto} resizeMode="cover" />
-            ) : (
-              <SpriteCrop
-                source={APPROVED_CONDITION_SPRITE}
-                width={83}
-                height={54}
-                spriteHeight={324}
-                y={condition.spriteY}
-                style={styles.conditionPhoto}
-              />
-            )}
+            <Image source={{ uri: condition.image }} style={styles.conditionPhoto} resizeMode="cover" />
             <View style={{ flex: 1 }}>
               <Text style={styles.referenceTitle}>{condition.name}</Text>
               <Text style={styles.referenceSub}>{condition.desc}</Text>
@@ -1319,6 +1308,15 @@ export default function App() {
             <Text style={styles.brand}>BLACK BOOK</Text>
           </View>
           <View style={styles.homeHeaderActions}>
+            <Pressable onPress={() => setScreen('saved')} hitSlop={10} style={styles.savedHeaderButton}>
+              <Ionicons name="bookmark-outline" size={20} color={TEXT} />
+              <Text style={styles.savedHeaderText}>SAVED</Text>
+              {savedItems.length > 0 ? (
+                <View style={styles.savedCount}>
+                  <Text style={styles.savedCountText}>{savedItems.length}</Text>
+                </View>
+              ) : null}
+            </Pressable>
             <Pressable hitSlop={12} style={styles.settingsButton}>
               <Ionicons name="settings-outline" size={28} color={TEXT} />
             </Pressable>
