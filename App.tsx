@@ -94,6 +94,22 @@ const SUPABASE_PUBLISHABLE_KEY =
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+
+const standardPipeData = [
+  { nps: '1/8', dn: '6', od: 0.405, walls: { '10': 0.049, '40': 0.068, '80': 0.095 } },
+  { nps: '1/4', dn: '8', od: 0.540, walls: { '10': 0.065, '40': 0.088, '80': 0.119 } },
+  { nps: '3/8', dn: '10', od: 0.675, walls: { '10': 0.065, '40': 0.091, '80': 0.126 } },
+  { nps: '1/2', dn: '15', od: 0.840, walls: { '10': 0.083, '40': 0.109, '80': 0.147 } },
+  { nps: '3/4', dn: '20', od: 1.050, walls: { '10': 0.083, '40': 0.113, '80': 0.154 } },
+  { nps: '1', dn: '25', od: 1.315, walls: { '10': 0.109, '40': 0.133, '80': 0.179 } },
+  { nps: '1 1/4', dn: '32', od: 1.660, walls: { '10': 0.109, '40': 0.140, '80': 0.191 } },
+  { nps: '1 1/2', dn: '40', od: 1.900, walls: { '10': 0.109, '40': 0.145, '80': 0.200 } },
+  { nps: '2', dn: '50', od: 2.375, walls: { '10': 0.109, '40': 0.154, '80': 0.218 } },
+  { nps: '2 1/2', dn: '65', od: 2.875, walls: { '10': 0.120, '40': 0.203, '80': 0.276 } },
+  { nps: '3', dn: '80', od: 3.500, walls: { '10': 0.120, '40': 0.216, '80': 0.300 } },
+  { nps: '4', dn: '100', od: 4.500, walls: { '10': 0.120, '40': 0.237, '80': 0.337 } },
+] as const;
+
 const fallbackPipes = [
   ['1/8', '0.405', '0.269'],
   ['1/4', '0.540', '0.364'],
@@ -951,196 +967,103 @@ function PipeScreen({
   isSaved: (item: SavedItem) => boolean;
   onToggleSave: (item: SavedItem) => void;
 }) {
-  const [rows, setRows] = useState<string[][]>(fallbackPipes.map((row) => [...row]));
-  const [tab, setTab] = useState(Number(initial?.payload.tab ?? 0));
-  const [selectedRow, setSelectedRow] = useState<number | null>(
-    initial ? Number(initial.payload.rowIndex ?? 0) : null
-  );
-  const [slipClearances, setSlipClearances] = useState<string[]>(
-    fallbackPipes.map(() => '0.020')
-  );
+  const initialMode = String(initial?.payload.mode ?? 'standard');
+  const [tab, setTab] = useState(initialMode === 'custom' ? 1 : initialMode === 'slip' ? 2 : 0);
+  const [nps, setNps] = useState(String(initial?.payload.nps ?? '2'));
+  const [schedule, setSchedule] = useState(String(initial?.payload.schedule ?? '40'));
+  const [tubeOd, setTubeOd] = useState(String(initial?.payload.od ?? '1.000'));
+  const [tubeWall, setTubeWall] = useState(String(initial?.payload.wall ?? '0.065'));
+  const [slipOd, setSlipOd] = useState(String(initial?.payload.od ?? '2.375'));
+  const [clearance, setClearance] = useState(String(initial?.payload.clearance ?? '0.020'));
 
-  useEffect(() => {
-    if (initial?.kind === 'pipe') {
-      const rowIndex = Number(initial.payload.rowIndex ?? 0);
-      const nb = String(initial.payload.nb ?? '');
-      const od = String(initial.payload.od ?? '');
-      const id = String(initial.payload.id ?? '');
-      const clearance = String(initial.payload.clearance ?? '0.020');
-      setRows((current) =>
-        current.map((row, index) => index === rowIndex ? [nb, od, id] : row)
-      );
-      setSlipClearances((current) =>
-        current.map((value, index) => index === rowIndex ? clearance : value)
-      );
-      setSelectedRow(rowIndex);
-      return;
-    }
+  const standard = standardPipeData.find((pipe) => pipe.nps === nps) ?? standardPipeData[8];
+  const wall = standard.walls[schedule as keyof typeof standard.walls];
+  const standardId = (standard.od - (2 * wall)).toFixed(3);
 
-    supabase
-      .from('pipe_sizes')
-      .select('nominal_size,od_in,sch40_id_in')
-      .order('id')
-      .then(({ data }) => {
-        if (data?.length) {
-          setRows(data.map((r) => [String(r.nominal_size), String(r.od_in), String(r.sch40_id_in)]));
-          setSlipClearances(data.map(() => '0.020'));
-        }
-      });
-  }, [initial]);
-
-  const findMatchingPipe = (columnIndex: number, value: string) => {
-    const normalized = value.trim();
-    if (!normalized) return null;
-
-    if (columnIndex === 0) {
-      return rows.find((row) => row[0].trim() === normalized) ?? null;
-    }
-
-    const numeric = Number(normalized);
-    if (!Number.isFinite(numeric)) return null;
-    return rows.find((row) => {
-      const candidate = Number(row[columnIndex]);
-      return Number.isFinite(candidate) && Math.abs(candidate - numeric) < 0.0005;
-    }) ?? null;
-  };
-
-  const updateRow = (rowIndex: number, columnIndex: number, value: string) => {
-    setSelectedRow(rowIndex);
-    const match = findMatchingPipe(columnIndex, value);
-    setRows((current) =>
-      current.map((row, index) => {
-        if (index !== rowIndex) return row;
-        if (match) return [...match];
-        return row.map((cell, column) => column === columnIndex ? value : cell);
-      })
-    );
-  };
-
-  const updateClearance = (rowIndex: number, value: string) => {
-    setSelectedRow(rowIndex);
-    setSlipClearances((current) =>
-      current.map((cell, index) => index === rowIndex ? value : cell)
-    );
-  };
-
-  const EditableCell = ({
-    value,
-    onChangeText,
-    rowIndex,
-    keyboardType = 'decimal-pad',
-  }: {
-    value: string;
-    onChangeText: (value: string) => void;
-    rowIndex: number;
-    keyboardType?: 'decimal-pad' | 'default';
-  }) => (
-    <Pressable style={styles.tableEditableCell} onPress={() => setSelectedRow(rowIndex)}>
-      <TextInput
-        value={value}
-        onFocus={() => setSelectedRow(rowIndex)}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        style={styles.tableInput}
-        selectTextOnFocus
-        placeholderTextColor="#777"
-      />
-    </Pressable>
-  );
-
-  const selectedItem = selectedRow === null ? null : (() => {
-    const row = rows[selectedRow];
-    if (!row) return null;
-    const od = Number(row[1]);
-    const clearance = Number(slipClearances[selectedRow] ?? '0.020');
-    const slipId = Number.isFinite(od) && Number.isFinite(clearance)
-      ? (od + clearance).toFixed(3)
+  const customOdNumber = Number(tubeOd);
+  const customWallNumber = Number(tubeWall);
+  const customId =
+    Number.isFinite(customOdNumber) && Number.isFinite(customWallNumber) && customOdNumber > 2 * customWallNumber
+      ? (customOdNumber - (2 * customWallNumber)).toFixed(3)
       : '';
-    return makeSavedItem(
-      'pipe',
-      `Pipe ${row[0]}" NB`,
-      `OD ${row[1]}" · ID ${row[2]}"`,
-      {
-        tab,
-        rowIndex: selectedRow,
-        nb: row[0],
-        od: row[1],
-        id: row[2],
-        slipOverId: slipId,
-        clearance: slipClearances[selectedRow] ?? '',
-      }
-    );
-  })();
+
+  const slipOdNumber = Number(slipOd);
+  const clearanceNumber = Number(clearance);
+  const slipOverId =
+    Number.isFinite(slipOdNumber) && Number.isFinite(clearanceNumber)
+      ? (slipOdNumber + clearanceNumber).toFixed(3)
+      : '';
+
+  const savedItem = tab === 0
+    ? makeSavedItem(
+        'pipe',
+        `NPS ${nps}" · Sch ${schedule}`,
+        `OD ${standard.od.toFixed(3)}" · Wall ${wall.toFixed(3)}" · ID ${standardId}"`,
+        { mode: 'standard', nps, dn: standard.dn, schedule, od: standard.od.toFixed(3), wall: wall.toFixed(3), id: standardId }
+      )
+    : tab === 1
+      ? makeSavedItem(
+          'pipe',
+          'Custom / Tube',
+          `OD ${tubeOd}" · Wall ${tubeWall}" · ID ${customId || '—'}"`,
+          { mode: 'custom', od: tubeOd, wall: tubeWall, id: customId }
+        )
+      : makeSavedItem(
+          'pipe',
+          'Slip Fit',
+          `OD ${slipOd}" · Slip-over ID ${slipOverId || '—'}" · Clearance ${clearance}"`,
+          { mode: 'slip', od: slipOd, slipOverId, clearance }
+        );
 
   return (
     <>
-      <Header title="PIPE SIZES" onBack={onBack} />
+      <Header title="PIPE / TUBE SIZES" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Segment labels={['NB Sizes', 'OD / ID', 'Slip Fit']} active={tab} onChange={setTab} />
+        <Segment labels={['Standard Pipe', 'Custom / Tube', 'Slip Fit']} active={tab} onChange={setTab} />
 
-        {tab === 0 || tab === 1 ? (
-          <View style={styles.table}>
-            <View style={[styles.tableRow, styles.tableHeaderRow]}>
-              <Text style={styles.tableHeader}>NB{'\n'}(in)</Text>
-              <Text style={styles.tableHeader}>OD{'\n'}(in)</Text>
-              <Text style={styles.tableHeader}>{tab === 0 ? 'Schedule 40' : 'ID'}{'\n'}(in)</Text>
+        {tab === 0 ? (
+          <>
+            <Text style={styles.pipeReferenceNote}>
+              Standard steel pipe dimensions use NPS and schedule. OD and wall thickness are standard values; ID is calculated from them.
+            </Text>
+            <SelectorRow label="NPS / NB" value={nps} options={standardPipeData.map((pipe) => pipe.nps)} onChange={setNps} />
+            <SelectorRow label="SCHEDULE" value={schedule} options={['10', '40', '80']} onChange={setSchedule} />
+            <View style={styles.infoCard}>
+              <InfoLine label="DN" value={`DN ${standard.dn}`} />
+              <InfoLine label="Outside Diameter" value={`${standard.od.toFixed(3)} in`} />
+              <InfoLine label="Wall Thickness" value={`${wall.toFixed(3)} in`} />
+              <InfoLine label="Inside Diameter" value={`${standardId} in`} />
             </View>
-            {rows.map((row, index) => (
-              <Pressable
-                key={index}
-                onPress={() => setSelectedRow(index)}
-                style={[styles.tableRow, selectedRow === index && styles.tableRowSelected]}
-              >
-                <EditableCell rowIndex={index} value={row[0]} onChangeText={(value) => updateRow(index, 0, value)} keyboardType="default" />
-                <EditableCell rowIndex={index} value={row[1]} onChangeText={(value) => updateRow(index, 1, value)} />
-                <EditableCell rowIndex={index} value={row[2]} onChangeText={(value) => updateRow(index, 2, value)} />
-              </Pressable>
-            ))}
-          </View>
+          </>
+        ) : tab === 1 ? (
+          <>
+            <Text style={styles.pipeReferenceNote}>
+              For tubing or a custom fabricated size, enter actual OD and wall thickness. ID is calculated automatically.
+            </Text>
+            <Text style={styles.selectorLabel}>OUTSIDE DIAMETER (IN)</Text>
+            <TextInput value={tubeOd} onChangeText={setTubeOd} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
+            <Text style={styles.selectorLabel}>WALL THICKNESS (IN)</Text>
+            <TextInput value={tubeWall} onChangeText={setTubeWall} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
+            <View style={styles.infoCard}>
+              <InfoLine label="Calculated ID" value={customId ? `${customId} in` : 'Enter valid OD and wall'} />
+            </View>
+          </>
         ) : (
-          <View style={styles.table}>
-            <View style={[styles.tableRow, styles.tableHeaderRow]}>
-              <Text style={styles.tableHeader}>PIPE OD{'\n'}(in)</Text>
-              <Text style={styles.tableHeader}>SLIP OVER ID{'\n'}(in)</Text>
-              <Text style={styles.tableHeader}>CLEARANCE{'\n'}(in)</Text>
+          <>
+            <Text style={styles.pipeReferenceNote}>
+              Slip fit uses the actual outside diameter of the inner piece plus the desired diametral clearance.
+            </Text>
+            <Text style={styles.selectorLabel}>INNER PIECE OD (IN)</Text>
+            <TextInput value={slipOd} onChangeText={setSlipOd} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
+            <Text style={styles.selectorLabel}>DIAMETRAL CLEARANCE (IN)</Text>
+            <TextInput value={clearance} onChangeText={setClearance} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
+            <View style={styles.infoCard}>
+              <InfoLine label="Required Slip-over ID" value={slipOverId ? `${slipOverId} in` : 'Enter valid dimensions'} />
             </View>
-            {rows.map((row, index) => {
-              const od = Number(row[1]);
-              const clearance = Number(slipClearances[index]);
-              const slipId = Number.isFinite(od) && Number.isFinite(clearance)
-                ? (od + clearance).toFixed(3)
-                : '';
-              return (
-                <Pressable
-                  key={index}
-                  onPress={() => setSelectedRow(index)}
-                  style={[styles.tableRow, selectedRow === index && styles.tableRowSelected]}
-                >
-                  <EditableCell rowIndex={index} value={row[1]} onChangeText={(value) => updateRow(index, 1, value)} />
-                  <EditableCell
-                    rowIndex={index}
-                    value={slipId}
-                    onChangeText={(value) => {
-                      setSelectedRow(index);
-                      const nextSlip = Number(value);
-                      const currentOd = Number(row[1]);
-                      if (Number.isFinite(nextSlip) && Number.isFinite(currentOd)) {
-                        updateClearance(index, (nextSlip - currentOd).toFixed(3));
-                      }
-                    }}
-                  />
-                  <EditableCell rowIndex={index} value={slipClearances[index] ?? ''} onChangeText={(value) => updateClearance(index, value)} />
-                </Pressable>
-              );
-            })}
-          </View>
+          </>
         )}
 
-        {selectedItem ? (
-          <SaveButton saved={isSaved(selectedItem)} onPress={() => onToggleSave(selectedItem)} />
-        ) : (
-          <Text style={styles.pipeSaveHint}>Tap a pipe-size row to select it and save that setup.</Text>
-        )}
+        <SaveButton saved={isSaved(savedItem)} onPress={() => onToggleSave(savedItem)} />
       </ScrollView>
     </>
   );
@@ -2426,6 +2349,13 @@ const styles = StyleSheet.create({
   tableRowSelected: {
     backgroundColor: '#2d2b20',
     borderColor: YELLOW,
+  },
+  pipeReferenceNote: {
+    color: MUTED,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 16,
+    marginBottom: 18,
   },
   pipeSaveHint: {
     color: MUTED,
