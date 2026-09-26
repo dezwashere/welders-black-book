@@ -1066,7 +1066,7 @@ function PipeScreen({
 
   return (
     <>
-      <Header title="PIPE SIZES" onBack={onBack} />
+      <Header title={region === 'EU' ? 'PIPE SIZES · METRIC' : 'PIPE SIZES'} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Segment labels={['PIPE', 'TUBE / CUSTOM', 'SLIP FIT']} active={tab} onChange={setTab} />
 
@@ -1104,7 +1104,14 @@ function PipeScreen({
               </>
             ) : (
               <>
-                <Text style={styles.pipeReferenceNote}>EUROPEAN METRIC PIPE · EN 10220</Text>
+                <View style={styles.metricModeBanner}>
+                  <Ionicons name="information-circle-outline" size={20} color={BLACK} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.metricModeTitle}>METRIC MODE · EN 10220</Text>
+                    <Text style={styles.metricModeText}>All pipe dimensions are shown in millimetres (mm).</Text>
+                  </View>
+                </View>
+                <Text style={styles.pipeReferenceNote}>EUROPEAN METRIC PIPE</Text>
                 <SelectorRow label="DN / NOMINAL DIAMETER" value={enDn} options={enPipeData.map((pipe) => pipe.dn)} onChange={setEnDn} />
                 <SelectorRow label="WALL THICKNESS (MM)" value={String(activeEnWall)} options={enWallOptions} onChange={setEnWall} />
                 <View style={styles.infoCard}>
@@ -2436,6 +2443,28 @@ const styles = StyleSheet.create({
   tableRowSelected: {
     backgroundColor: '#2d2b20',
     borderColor: YELLOW,
+  },
+  metricModeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: YELLOW,
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  metricModeTitle: {
+    color: BLACK,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  metricModeText: {
+    color: BLACK,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 2,
   },
   pipeRegionSwitch: {
     flexDirection: 'row',
