@@ -56,6 +56,7 @@ type SavedProject = {
 
 const SAVED_KEY = 'wbb_saved_items_v1';
 const PROJECTS_KEY = 'wbb_saved_projects_v1';
+const SAVED_NOTES_KEY = 'wbb_saved_notes_v1';
 const SHARE_FUNCTION_URL =
   'https://dylsigpylgxumehseckr.supabase.co/functions/v1/share-setup';
 
@@ -446,6 +447,8 @@ function SaveButton({
 function SavedScreen({
   items,
   projects,
+  savedNotes,
+  onSavedNotesChange,
   onBack,
   onOpen,
   onShare,
@@ -455,6 +458,8 @@ function SavedScreen({
 }: {
   items: SavedItem[];
   projects: SavedProject[];
+  savedNotes: string;
+  onSavedNotesChange: (notes: string) => void;
   onBack: () => void;
   onOpen: (item: SavedItem) => void;
   onShare: (item: SavedItem) => void;
@@ -464,11 +469,37 @@ function SavedScreen({
 }) {
   const groupedIds = new Set(projects.flatMap((project) => project.itemIds));
   const individualItems = items.filter((item) => !groupedIds.has(item.id));
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((current) =>
+      current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id]
+    );
+  };
+
+  const payloadLabel = (key: string) =>
+    key.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase());
 
   return (
     <>
       <Header title="SAVED" onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.savedNotepadCard}>
+          <View style={styles.projectNotesHeader}>
+            <Ionicons name="document-text-outline" size={19} color={YELLOW} />
+            <Text style={styles.projectNotesTitle}>NOTEPAD</Text>
+          </View>
+          <TextInput
+            value={savedNotes}
+            onChangeText={onSavedNotesChange}
+            placeholder="Write a note..."
+            placeholderTextColor="#777"
+            style={styles.projectNotesInput}
+            multiline
+            textAlignVertical="top"
+          />
+        </View>
+
         <Text style={styles.savedSectionTitle}>PROJECTS</Text>
         {projects.length === 0 ? (
           <Text style={styles.savedSectionEmpty}>No projects yet. Save an item and choose Add to project.</Text>
@@ -495,39 +526,56 @@ function SavedScreen({
 
         <Text style={[styles.savedSectionTitle, { marginTop: 22 }]}>INDIVIDUAL ITEMS</Text>
         {individualItems.length === 0 ? (
-          <Text style={styles.savedSectionEmpty}>No ungrouped saved items.</Text>
+          <Text style={styles.savedSectionEmpty}>No individual saved items.</Text>
         ) : (
-          individualItems.map((item) => (
-            <View key={item.id} style={styles.savedCard}>
-              <View style={styles.savedCardTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.savedCardTitle}>{item.title}</Text>
-                  <Text style={styles.savedCardSub}>{item.subtitle}</Text>
-                  <TextInput
-                    value={item.notes ?? ''}
-                    onChangeText={(notes) => onNotesChange(item.id, notes)}
-                    placeholder="Add notes..."
-                    placeholderTextColor="#777"
-                    style={styles.savedItemNotesInput}
-                    multiline
-                    textAlignVertical="top"
-                  />
-                </View>
-                <Pressable onPress={() => onDelete(item)} hitSlop={10} style={styles.savedDelete}>
-                  <Ionicons name="trash-outline" size={20} color={MUTED} />
+          individualItems.map((item) => {
+            const expanded = expandedIds.includes(item.id);
+            return (
+              <View key={item.id} style={styles.savedCard}>
+                <Pressable onPress={() => toggleExpanded(item.id)} style={styles.savedCardTop}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.savedPartKind}>{item.kind.toUpperCase()}</Text>
+                    <Text style={styles.savedCardTitle}>{item.title}</Text>
+                    <Text style={styles.savedCardSub}>{item.subtitle}</Text>
+                  </View>
+                  <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={22} color={TEXT} />
                 </Pressable>
+
+                {expanded ? (
+                  <View style={styles.savedDropdown}>
+                    {Object.entries(item.payload).map(([key, value]) => (
+                      <View key={key} style={styles.savedDropdownRow}>
+                        <Text style={styles.savedDropdownLabel}>{payloadLabel(key)}</Text>
+                        <Text style={styles.savedDropdownValue}>{String(value)}</Text>
+                      </View>
+                    ))}
+                    <Text style={styles.savedItemNoteLabel}>NOTES</Text>
+                    <TextInput
+                      value={item.notes ?? ''}
+                      onChangeText={(notes) => onNotesChange(item.id, notes)}
+                      placeholder="Write notes for this saved item..."
+                      placeholderTextColor="#777"
+                      style={styles.savedItemNotesInput}
+                      multiline
+                      textAlignVertical="top"
+                    />
+                    <View style={styles.savedActions}>
+                      <Pressable onPress={() => onOpen(item)} style={styles.savedActionPrimary}>
+                        <Text style={styles.savedActionPrimaryText}>OPEN</Text>
+                      </Pressable>
+                      <Pressable onPress={() => onShare(item)} style={styles.savedActionSecondary}>
+                        <Ionicons name="share-outline" size={18} color={TEXT} />
+                        <Text style={styles.savedActionSecondaryText}>SHARE</Text>
+                      </Pressable>
+                      <Pressable onPress={() => onDelete(item)} style={styles.savedDelete}>
+                        <Ionicons name="trash-outline" size={20} color={MUTED} />
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : null}
               </View>
-              <View style={styles.savedActions}>
-                <Pressable onPress={() => onOpen(item)} style={styles.savedActionPrimary}>
-                  <Text style={styles.savedActionPrimaryText}>OPEN</Text>
-                </Pressable>
-                <Pressable onPress={() => onShare(item)} style={styles.savedActionSecondary}>
-                  <Ionicons name="share-outline" size={18} color={TEXT} />
-                  <Text style={styles.savedActionSecondaryText}>SHARE</Text>
-                </Pressable>
-              </View>
-            </View>
-          ))
+            );
+          })
         )}
       </ScrollView>
     </>
@@ -1493,6 +1541,8 @@ export default function App() {
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [pendingSave, setPendingSave] = useState<SavedItem | null>(null);
+  const [savedNotes, setSavedNotes] = useState('');
+  const [savedNotesLoaded, setSavedNotesLoaded] = useState(false);
   const goHome = () => {
     setOpenedSaved(null);
     setScreen('home');
@@ -1539,6 +1589,20 @@ export default function App() {
     if (!savedLoaded) return;
     AsyncStorage.setItem(SAVED_KEY, JSON.stringify(savedItems)).catch(() => {});
   }, [savedItems, savedLoaded]);
+
+  useEffect(() => {
+    AsyncStorage.getItem(SAVED_NOTES_KEY)
+      .then((raw) => {
+        if (raw !== null) setSavedNotes(raw);
+      })
+      .catch(() => {})
+      .finally(() => setSavedNotesLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (!savedNotesLoaded) return;
+    AsyncStorage.setItem(SAVED_NOTES_KEY, savedNotes).catch(() => {});
+  }, [savedNotes, savedNotesLoaded]);
 
   const isSaved = (item: SavedItem) =>
     savedItems.some((saved) => saved.signature === item.signature);
@@ -1853,6 +1917,8 @@ export default function App() {
         <SavedScreen
           items={savedItems}
           projects={projects}
+          savedNotes={savedNotes}
+          onSavedNotesChange={setSavedNotes}
           onBack={goHome}
           onOpen={openSaved}
           onShare={shareSaved}
@@ -2616,6 +2682,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     marginTop: 4,
+  },
+  savedNotepadCard: {
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    marginBottom: 22,
+  },
+  savedItemNoteLabel: {
+    color: TEXT,
+    fontSize: 12,
+    fontWeight: '900',
+    marginTop: 12,
+    marginBottom: 6,
   },
   savedItemNotesInput: {
     minHeight: 64,
