@@ -151,7 +151,7 @@ const metals = [
   {
     name: 'Aluminum',
     spriteY: 0,
-    image: wikiImage('Aluminum sheet info.jpg'),
+    image: wikiImage('Aluminiumblech.JPG'),
     description: 'Lightweight nonferrous metal with a silver-gray oxide layer that reforms quickly after cleaning.',
     welding: 'Typically welded with MIG or AC TIG using aluminum-compatible filler.',
     note: 'Remove oxide and contamination immediately before welding for best results.',
