@@ -35,7 +35,7 @@ type Screen =
 
 
 
-type SavedKind = 'circle' | 'triangle' | 'rod' | 'metal' | 'thickness' | 'condition';
+type SavedKind = 'circle' | 'triangle' | 'pipe' | 'rod' | 'metal' | 'thickness' | 'condition';
 
 type SavedItem = {
   id: string;
@@ -940,33 +940,57 @@ function TriangleScreen({
   );
 }
 
-function PipeScreen({ onBack }: { onBack: () => void }) {
+function PipeScreen({
+  onBack,
+  initial,
+  isSaved,
+  onToggleSave,
+}: {
+  onBack: () => void;
+  initial?: SavedItem | null;
+  isSaved: (item: SavedItem) => boolean;
+  onToggleSave: (item: SavedItem) => void;
+}) {
   const [rows, setRows] = useState<string[][]>(fallbackPipes.map((row) => [...row]));
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(Number(initial?.payload.tab ?? 0));
+  const [selectedRow, setSelectedRow] = useState<number | null>(
+    initial ? Number(initial.payload.rowIndex ?? 0) : null
+  );
   const [slipClearances, setSlipClearances] = useState<string[]>(
     fallbackPipes.map(() => '0.020')
   );
 
   useEffect(() => {
+    if (initial?.kind === 'pipe') {
+      const rowIndex = Number(initial.payload.rowIndex ?? 0);
+      const nb = String(initial.payload.nb ?? '');
+      const od = String(initial.payload.od ?? '');
+      const id = String(initial.payload.id ?? '');
+      const clearance = String(initial.payload.clearance ?? '0.020');
+      setRows((current) =>
+        current.map((row, index) => index === rowIndex ? [nb, od, id] : row)
+      );
+      setSlipClearances((current) =>
+        current.map((value, index) => index === rowIndex ? clearance : value)
+      );
+      setSelectedRow(rowIndex);
+      return;
+    }
+
     supabase
       .from('pipe_sizes')
       .select('nominal_size,od_in,sch40_id_in')
       .order('id')
       .then(({ data }) => {
         if (data?.length) {
-          setRows(
-            data.map((r) => [
-              String(r.nominal_size),
-              String(r.od_in),
-              String(r.sch40_id_in),
-            ])
-          );
+          setRows(data.map((r) => [String(r.nominal_size), String(r.od_in), String(r.sch40_id_in)]));
           setSlipClearances(data.map(() => '0.020'));
         }
       });
-  }, []);
+  }, [initial]);
 
   const updateRow = (rowIndex: number, columnIndex: number, value: string) => {
+    setSelectedRow(rowIndex);
     setRows((current) =>
       current.map((row, index) =>
         index === rowIndex ? row.map((cell, column) => column === columnIndex ? value : cell) : row
@@ -975,6 +999,7 @@ function PipeScreen({ onBack }: { onBack: () => void }) {
   };
 
   const updateClearance = (rowIndex: number, value: string) => {
+    setSelectedRow(rowIndex);
     setSlipClearances((current) =>
       current.map((cell, index) => index === rowIndex ? value : cell)
     );
@@ -983,21 +1008,50 @@ function PipeScreen({ onBack }: { onBack: () => void }) {
   const EditableCell = ({
     value,
     onChangeText,
+    rowIndex,
     keyboardType = 'decimal-pad',
   }: {
     value: string;
     onChangeText: (value: string) => void;
+    rowIndex: number;
     keyboardType?: 'decimal-pad' | 'default';
   }) => (
-    <TextInput
-      value={value}
-      onChangeText={onChangeText}
-      keyboardType={keyboardType}
-      style={styles.tableInput}
-      selectTextOnFocus
-      placeholderTextColor="#777"
-    />
+    <Pressable style={styles.tableEditableCell} onPress={() => setSelectedRow(rowIndex)}>
+      <TextInput
+        value={value}
+        onFocus={() => setSelectedRow(rowIndex)}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        style={styles.tableInput}
+        selectTextOnFocus
+        placeholderTextColor="#777"
+      />
+    </Pressable>
   );
+
+  const selectedItem = selectedRow === null ? null : (() => {
+    const row = rows[selectedRow];
+    if (!row) return null;
+    const od = Number(row[1]);
+    const clearance = Number(slipClearances[selectedRow] ?? '0.020');
+    const slipId = Number.isFinite(od) && Number.isFinite(clearance)
+      ? (od + clearance).toFixed(3)
+      : '';
+    return makeSavedItem(
+      'pipe',
+      `Pipe ${row[0]}" NB`,
+      `OD ${row[1]}" · ID ${row[2]}"`,
+      {
+        tab,
+        rowIndex: selectedRow,
+        nb: row[0],
+        od: row[1],
+        id: row[2],
+        slipOverId: slipId,
+        clearance: slipClearances[selectedRow] ?? '',
+      }
+    );
+  })();
 
   return (
     <>
@@ -1013,11 +1067,15 @@ function PipeScreen({ onBack }: { onBack: () => void }) {
               <Text style={styles.tableHeader}>{tab === 0 ? 'Schedule 40' : 'ID'}{'\n'}(in)</Text>
             </View>
             {rows.map((row, index) => (
-              <View key={index} style={styles.tableRow}>
-                <EditableCell value={row[0]} onChangeText={(value) => updateRow(index, 0, value)} keyboardType="default" />
-                <EditableCell value={row[1]} onChangeText={(value) => updateRow(index, 1, value)} />
-                <EditableCell value={row[2]} onChangeText={(value) => updateRow(index, 2, value)} />
-              </View>
+              <Pressable
+                key={index}
+                onPress={() => setSelectedRow(index)}
+                style={[styles.tableRow, selectedRow === index && styles.tableRowSelected]}
+              >
+                <EditableCell rowIndex={index} value={row[0]} onChangeText={(value) => updateRow(index, 0, value)} keyboardType="default" />
+                <EditableCell rowIndex={index} value={row[1]} onChangeText={(value) => updateRow(index, 1, value)} />
+                <EditableCell rowIndex={index} value={row[2]} onChangeText={(value) => updateRow(index, 2, value)} />
+              </Pressable>
             ))}
           </View>
         ) : (
@@ -1030,16 +1088,21 @@ function PipeScreen({ onBack }: { onBack: () => void }) {
             {rows.map((row, index) => {
               const od = Number(row[1]);
               const clearance = Number(slipClearances[index]);
-              const slipId =
-                Number.isFinite(od) && Number.isFinite(clearance)
-                  ? (od + clearance).toFixed(3)
-                  : '';
+              const slipId = Number.isFinite(od) && Number.isFinite(clearance)
+                ? (od + clearance).toFixed(3)
+                : '';
               return (
-                <View key={index} style={styles.tableRow}>
-                  <EditableCell value={row[1]} onChangeText={(value) => updateRow(index, 1, value)} />
+                <Pressable
+                  key={index}
+                  onPress={() => setSelectedRow(index)}
+                  style={[styles.tableRow, selectedRow === index && styles.tableRowSelected]}
+                >
+                  <EditableCell rowIndex={index} value={row[1]} onChangeText={(value) => updateRow(index, 1, value)} />
                   <EditableCell
+                    rowIndex={index}
                     value={slipId}
                     onChangeText={(value) => {
+                      setSelectedRow(index);
                       const nextSlip = Number(value);
                       const currentOd = Number(row[1]);
                       if (Number.isFinite(nextSlip) && Number.isFinite(currentOd)) {
@@ -1047,11 +1110,17 @@ function PipeScreen({ onBack }: { onBack: () => void }) {
                       }
                     }}
                   />
-                  <EditableCell value={slipClearances[index] ?? ''} onChangeText={(value) => updateClearance(index, value)} />
-                </View>
+                  <EditableCell rowIndex={index} value={slipClearances[index] ?? ''} onChangeText={(value) => updateClearance(index, value)} />
+                </Pressable>
               );
             })}
           </View>
+        )}
+
+        {selectedItem ? (
+          <SaveButton saved={isSaved(selectedItem)} onPress={() => onToggleSave(selectedItem)} />
+        ) : (
+          <Text style={styles.pipeSaveHint}>Tap a pipe-size row to select it and save that setup.</Text>
         )}
       </ScrollView>
     </>
@@ -1777,7 +1846,21 @@ export default function App() {
   if (screen === 'pipe') {
     return (
       <SafeAreaView style={styles.safe}>
-        <PipeScreen onBack={goHome} />
+        <PipeScreen
+          onBack={backFromOpenedSaved}
+          initial={openedSaved?.kind === 'pipe' ? openedSaved : null}
+          isSaved={isSaved}
+          onToggleSave={toggleSave}
+        />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
+        />
       </SafeAreaView>
     );
   }
@@ -2316,6 +2399,20 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRightWidth: 1,
     borderRightColor: '#363839',
+  },
+  tableEditableCell: {
+    flex: 1,
+  },
+  tableRowSelected: {
+    backgroundColor: '#2d2b20',
+    borderColor: YELLOW,
+  },
+  pipeSaveHint: {
+    color: MUTED,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginTop: 14,
   },
   tableInput: {
     flex: 1,
