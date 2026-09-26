@@ -238,13 +238,13 @@ function HomeButton({
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.homeButton, pressed && styles.pressed]}>
       <View style={styles.homeIconBox}>
-        <Ionicons name={icon} size={40} color={iconColor} />
+        <Ionicons name={icon} size={44} color={iconColor} />
       </View>
       <View style={styles.homeButtonTextWrap}>
         <Text style={styles.homeButtonTitle}>{title}</Text>
         {subtitle ? <Text style={styles.homeButtonSubtitle}>{subtitle}</Text> : null}
       </View>
-      <Ionicons name="chevron-forward" size={26} color={BLACK} />
+      <Ionicons name="chevron-forward" size={26} color={TEXT} />
     </Pressable>
   );
 }
@@ -1159,19 +1159,6 @@ export default function App() {
             <Text style={styles.brand}>BLACK BOOK</Text>
           </View>
           <View style={styles.homeHeaderActions}>
-            <Pressable
-              onPress={() => setScreen('saved')}
-              hitSlop={10}
-              style={styles.savedHeaderButton}
-            >
-              <Ionicons name="bookmark" size={20} color={YELLOW} />
-              <Text style={styles.savedHeaderText}>SAVED</Text>
-              {savedItems.length > 0 ? (
-                <View style={styles.savedCount}>
-                  <Text style={styles.savedCountText}>{savedItems.length}</Text>
-                </View>
-              ) : null}
-            </Pressable>
             <Pressable hitSlop={12} style={styles.settingsButton}>
               <Ionicons name="settings-outline" size={28} color={TEXT} />
             </Pressable>
@@ -1257,14 +1244,14 @@ const styles = StyleSheet.create({
   },
   homeButton: {
     minHeight: 74,
-    backgroundColor: YELLOW,
+    backgroundColor: PANEL,
     borderRadius: 10,
     marginBottom: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: YELLOW_DARK,
+    borderColor: '#2e3031',
   },
   pressed: {
     opacity: 0.82,
@@ -1279,13 +1266,13 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   homeButtonTitle: {
-    color: BLACK,
+    color: TEXT,
     fontSize: 18,
     lineHeight: 20,
     fontWeight: '900',
   },
   homeButtonSubtitle: {
-    color: '#3b3118',
+    color: TEXT,
     fontSize: 14,
     fontWeight: '800',
     marginTop: 2,
@@ -1598,8 +1585,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   referencePhoto: {
-    width: 68,
-    height: 68,
+    width: 64,
+    height: 54,
     borderRadius: 7,
     marginRight: 12,
     backgroundColor: '#333',
@@ -1647,8 +1634,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   conditionPhoto: {
-    width: 68,
-    height: 68,
+    width: 82,
+    height: 76,
     borderRadius: 7,
     marginRight: 12,
     backgroundColor: '#333',
