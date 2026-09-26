@@ -214,14 +214,14 @@ const conditions = [
     name: 'Light Rust',
     spriteY: 162,
     desc: 'Surface rust, still solid.',
-    image: wikiImage('Free Texture Rusty Metal (22819581).jpeg'),
+    image: wikiImage('Rusty metal sheet (Amal Kumar via Poly Haven).png'),
     prep: 'Wire-brush or grind the weld zone to remove loose oxidation. Confirm the base metal is still sound.',
   },
   {
     name: 'Moderate Rust',
     spriteY: 216,
     desc: 'Visible rust and scale.',
-    image: wikiImage('Rusty metal sheet (Amal Kumar via Poly Haven).png'),
+    image: wikiImage('Rust texture 3.jpg'),
     prep: 'Mechanically remove rust and scale around the joint. Recheck remaining thickness before welding.',
   },
   {
