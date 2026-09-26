@@ -36,7 +36,7 @@ type Screen =
 
 
 
-type SavedKind = 'circle' | 'triangle' | 'pipe' | 'rod' | 'metal' | 'thickness' | 'condition' | 'weldSettings';
+type SavedKind = 'circle' | 'triangle' | 'pipe' | 'rod' | 'metal' | 'thickness' | 'condition' | 'weldSettings' | 'weldingSymbol';
 
 type SavedItem = {
   id: string;
@@ -1646,15 +1646,15 @@ const stickInfo: Record<string, { polarity: string; position: string; penetratio
 };
 
 const weldingSymbolRows = [
-  { mark: '◢', name: 'Fillet', note: 'Triangular weld in a lap, tee, or corner joint.' },
-  { mark: 'Ⅱ', name: 'Square Groove', note: 'Square-edged groove / butt weld preparation.' },
-  { mark: 'V', name: 'V-Groove', note: 'Both members beveled to form a V.' },
-  { mark: '|/', name: 'Bevel Groove', note: 'One member square, the other beveled.' },
-  { mark: 'U', name: 'U-Groove', note: 'Curved groove preparation on both members.' },
-  { mark: 'J', name: 'J-Groove', note: 'One curved groove face and one square face.' },
-  { mark: '▭', name: 'Plug / Slot', note: 'Weld made through a circular or elongated opening.' },
-  { mark: '○', name: 'Spot / Projection', note: 'Discrete weld location rather than a continuous seam.' },
-  { mark: '═', name: 'Seam', note: 'Continuous or intermittent seam-type weld.' },
+  { mark: '◢', name: 'Fillet', note: 'Triangular weld in a lap, tee, or corner joint.', use: 'Common on lap, tee, and corner joints where two surfaces meet at an angle.', read: 'Size is normally shown to the left of the symbol. Length and pitch, when specified, are shown to the right.', detail: 'Below the AWS reference line means arrow side; above means other side. Fillet welds can be intermittent, staggered, chain, or continuous when the drawing specifies it.' },
+  { mark: 'Ⅱ', name: 'Square Groove', note: 'Square-edged groove / butt weld preparation.', use: 'Used where members meet edge-to-edge without a bevel preparation.', read: 'Groove weld size or depth information is placed to the left when required; length information is placed to the right.', detail: 'The drawing or WPS controls root opening, penetration, backing, and whether the weld is made from one or both sides.' },
+  { mark: 'V', name: 'V-Groove', note: 'Both members beveled to form a V.', use: 'Used for butt joints where both members are beveled to provide access for the groove weld.', read: 'Groove angle is shown with the symbol when specified. Root opening is shown inside the symbol; groove size or depth is shown to the left.', detail: 'A V symbol on both sides of the reference line indicates welding from both sides (double-V). Arrow-side versus other-side placement still follows the AWS reference-line convention.' },
+  { mark: '|/', name: 'Bevel Groove', note: 'One member square, the other beveled.', use: 'Used when only one member of the joint receives the bevel preparation.', read: 'The arrow has significance because it identifies the member that is to be prepared when the joint is not otherwise obvious.', detail: 'Bevel angle, root opening, groove depth, and penetration requirements may be added to the basic symbol and are controlled by the drawing or WPS.' },
+  { mark: 'U', name: 'U-Groove', note: 'Curved groove preparation on both members.', use: 'A groove preparation with curved sides, often used to reduce weld-metal volume on thicker material.', read: 'Groove size or depth is shown to the left when specified; root opening and other preparation dimensions can accompany the symbol.', detail: 'The exact radius, included angle, root face, and preparation dimensions come from the drawing or WPS rather than from the basic U symbol alone.' },
+  { mark: 'J', name: 'J-Groove', note: 'One curved groove face and one square face.', use: 'Similar to a U-groove, but only one member receives the curved J preparation.', read: 'The arrow identifies the member requiring preparation when that distinction matters.', detail: 'Preparation radius, root face, groove depth, root opening, and penetration requirements must be read from the drawing or WPS.' },
+  { mark: '▭', name: 'Plug / Slot', note: 'Weld made through a circular or elongated opening.', use: 'Joins overlapping members by depositing weld metal in a hole or slot in one member.', read: 'The symbol can carry hole/slot size, depth of filling, spacing or pitch, and number of welds depending on the drawing.', detail: 'Plug and slot welds are related but not interchangeable; the geometry and dimensions on the drawing determine which is required.' },
+  { mark: '○', name: 'Spot / Projection', note: 'Discrete weld location rather than a continuous seam.', use: 'Identifies individual weld locations, commonly associated with resistance spot or projection welding.', read: 'Size or strength information and spacing can be specified with the symbol. Process information may appear in the tail.', detail: 'Do not infer the welding process from the circle alone when the drawing supplies a process or specification reference.' },
+  { mark: '═', name: 'Seam', note: 'Continuous or intermittent seam-type weld.', use: 'Identifies a seam weld rather than isolated spot locations.', read: 'Size or strength, length, and pitch can be added to the symbol when required.', detail: 'Process, continuity, and exact seam requirements are governed by the drawing, procedure, or specification.' },
 ];
 
 function WeldSettingsScreen({
@@ -1972,7 +1972,26 @@ function WeldSettingsScreen({
   );
 }
 
-function WeldingSymbolsScreen({ onBack }: { onBack: () => void }) {
+function WeldingSymbolsScreen({
+  onBack,
+  initial,
+  isSaved,
+  onToggleSave,
+}: {
+  onBack: () => void;
+  initial?: SavedItem | null;
+  isSaved: (item: SavedItem) => boolean;
+  onToggleSave: (item: SavedItem) => void;
+}) {
+  const initialName = initial?.kind === 'weldingSymbol' ? String(initial.payload.symbol ?? '') : '';
+  const [expandedNames, setExpandedNames] = useState<string[]>(initialName ? [initialName] : []);
+
+  const toggleExpanded = (name: string) => {
+    setExpandedNames((current) =>
+      current.includes(name) ? current.filter((entry) => entry !== name) : [...current, name]
+    );
+  };
+
   return (
     <>
       <Header title="WELDING SYMBOLS" onBack={onBack} />
@@ -1999,17 +2018,41 @@ function WeldingSymbolsScreen({ onBack }: { onBack: () => void }) {
         </View>
 
         <Text style={styles.weldSectionTitle}>COMMON WELD SYMBOLS</Text>
-        {weldingSymbolRows.map((item) => (
-          <View key={item.name} style={styles.weldSymbolCard}>
-            <View style={styles.weldSymbolMarkBox}>
-              <Text style={styles.weldSymbolMark}>{item.mark}</Text>
+        {weldingSymbolRows.map((item) => {
+          const expanded = expandedNames.includes(item.name);
+          const savedItem = makeSavedItem(
+            'weldingSymbol',
+            'Welding Symbol • ' + item.name,
+            item.note,
+            { symbol: item.name, mark: item.mark, use: item.use, howToRead: item.read, details: item.detail }
+          );
+          return (
+            <View key={item.name} style={styles.weldSymbolCard}>
+              <Pressable
+                onPress={() => toggleExpanded(item.name)}
+                style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', flex: 1 }, pressed && styles.pressed]}
+              >
+                <View style={styles.weldSymbolMarkBox}>
+                  <Text style={styles.weldSymbolMark}>{item.mark}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.weldSymbolName}>{item.name}</Text>
+                  <Text style={styles.referenceSub}>{item.note}</Text>
+                </View>
+                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={22} color={TEXT} />
+              </Pressable>
+
+              {expanded ? (
+                <View style={{ width: '100%', marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: BORDER }}>
+                  <InfoLine label="Typical use" value={item.use} multiline />
+                  <InfoLine label="How to read it" value={item.read} multiline />
+                  <InfoLine label="Details" value={item.detail} multiline />
+                  <SaveButton saved={isSaved(savedItem)} onPress={() => onToggleSave(savedItem)} />
+                </View>
+              ) : null}
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.weldSymbolName}>{item.name}</Text>
-              <Text style={styles.referenceSub}>{item.note}</Text>
-            </View>
-          </View>
-        ))}
+          );
+        })}
 
         <Text style={styles.weldSectionTitle}>SUPPLEMENTARY INFORMATION</Text>
         <View style={styles.weldGuideCard}>
@@ -2493,6 +2536,10 @@ export default function App() {
       setScreen('conditionDetail');
       return;
     }
+    if (item.kind === 'weldingSymbol') {
+      setScreen('weldingSymbols');
+      return;
+    }
 
     setScreen(item.kind);
   };
@@ -2636,7 +2683,21 @@ export default function App() {
   if (screen === 'weldingSymbols') {
     return (
       <SafeAreaView style={styles.safe}>
-        <WeldingSymbolsScreen onBack={goHome} />
+        <WeldingSymbolsScreen
+          onBack={backFromOpenedSaved}
+          initial={openedSaved?.kind === 'weldingSymbol' ? openedSaved : null}
+          isSaved={isSaved}
+          onToggleSave={toggleSave}
+        />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
+        />
       </SafeAreaView>
     );
   }
