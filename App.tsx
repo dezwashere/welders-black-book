@@ -1284,7 +1284,6 @@ function RodScreen({
         </View>
         <SaveButton
           saved={isSaved(savedItem)}
-          editing={Boolean(initial)}
           onPress={() => onToggleSave(savedItem)}
         />
       </ScrollView>
