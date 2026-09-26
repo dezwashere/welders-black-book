@@ -836,6 +836,15 @@ function CircleScreen({
   const [value, setValue] = useState(
     initial?.kind === 'circle' ? String(initial.payload.input ?? '4') : '4'
   );
+  const [unit, setUnit] = useState<'in' | 'mm'>(
+    initial?.kind === 'circle' && initial.payload.unit === 'mm' ? 'mm' : 'in'
+  );
+  const changeUnit = (next: 'in' | 'mm') => {
+    if (next === unit) return;
+    const n = parseFloat(value);
+    if (isFinite(n)) setValue((next === 'mm' ? n * 25.4 : n / 25.4).toFixed(next === 'mm' ? 1 : 3));
+    setUnit(next);
+  };
   const result = useMemo(() => {
     const n = parseFloat(value);
     if (!isFinite(n)) return '';
@@ -844,13 +853,13 @@ function CircleScreen({
 
   const savedItem = makeSavedItem(
     'circle',
-    mode === 0 ? `Circle • Ø ${value || '—'} in` : `Circle • C ${value || '—'} in`,
+    mode === 0 ? `Circle • Ø ${value || '—'} ${unit}` : `Circle • C ${value || '—'} ${unit}`,
     result
       ? mode === 0
-        ? `Circumference ${result} in`
-        : `Diameter ${result} in`
+        ? `Circumference ${result} ${unit}`
+        : `Diameter ${result} ${unit}`
       : 'Circle measurement',
-    { mode, input: value, result }
+    { mode, input: value, result, unit }
   );
 
   return (
@@ -870,9 +879,17 @@ function CircleScreen({
           active={mode}
           onChange={setMode}
         />
+        <View style={styles.pipeRegionSwitch}>
+          <Pressable onPress={() => changeUnit('in')} style={[styles.pipeRegionButton, unit === 'in' && styles.pipeRegionButtonActive]}>
+            <Text style={[styles.pipeRegionText, unit === 'in' && styles.pipeRegionTextActive]}>US / INCH</Text>
+          </Pressable>
+          <Pressable onPress={() => changeUnit('mm')} style={[styles.pipeRegionButton, unit === 'mm' && styles.pipeRegionButtonActive]}>
+            <Text style={[styles.pipeRegionText, unit === 'mm' && styles.pipeRegionTextActive]}>METRIC / MM</Text>
+          </Pressable>
+        </View>
 
         <Field
-          label={mode === 0 ? 'Diameter (in)' : 'Circumference (in)'}
+          label={mode === 0 ? `Diameter (${unit})` : `Circumference (${unit})`}
           value={value}
           setValue={setValue}
         />
@@ -882,7 +899,7 @@ function CircleScreen({
             {mode === 0 ? 'Circumference' : 'Diameter'}
           </Text>
           <Text style={styles.resultBig}>
-            {result || '—'} <Text style={styles.resultUnit}>in</Text>
+            {result || '—'} <Text style={styles.resultUnit}>{unit}</Text>
           </Text>
         </View>
 
@@ -918,6 +935,18 @@ function TriangleScreen({
   const [b, setB] = useState(
     initial?.kind === 'triangle' ? String(initial.payload.b ?? '4') : '4'
   );
+  const [unit, setUnit] = useState<'in' | 'mm'>(
+    initial?.kind === 'triangle' && initial.payload.unit === 'mm' ? 'mm' : 'in'
+  );
+  const changeUnit = (next: 'in' | 'mm') => {
+    if (next === unit) return;
+    const factor = next === 'mm' ? 25.4 : 1 / 25.4;
+    const digits = next === 'mm' ? 1 : 3;
+    const x = parseFloat(a); const y = parseFloat(b);
+    if (isFinite(x)) setA((x * factor).toFixed(digits));
+    if (isFinite(y)) setB((y * factor).toFixed(digits));
+    setUnit(next);
+  };
 
   const c = useMemo(() => {
     const x = parseFloat(a);
@@ -927,9 +956,9 @@ function TriangleScreen({
 
   const savedItem = makeSavedItem(
     'triangle',
-    `Triangle • ${a || '—'} × ${b || '—'} in`,
-    c ? `Hypotenuse ${c} in` : 'Triangle measurement',
-    { a, b, c }
+    `Triangle • ${a || '—'} × ${b || '—'} ${unit}`,
+    c ? `Hypotenuse ${c} ${unit}` : 'Triangle measurement',
+    { a, b, c, unit }
   );
 
   return (
@@ -950,13 +979,21 @@ function TriangleScreen({
           onChange={setMode}
         />
 
-        <Field label="Side a (in)" value={a} setValue={setA} />
-        <Field label="Side b (in)" value={b} setValue={setB} />
+        <View style={styles.pipeRegionSwitch}>
+          <Pressable onPress={() => changeUnit('in')} style={[styles.pipeRegionButton, unit === 'in' && styles.pipeRegionButtonActive]}>
+            <Text style={[styles.pipeRegionText, unit === 'in' && styles.pipeRegionTextActive]}>US / INCH</Text>
+          </Pressable>
+          <Pressable onPress={() => changeUnit('mm')} style={[styles.pipeRegionButton, unit === 'mm' && styles.pipeRegionButtonActive]}>
+            <Text style={[styles.pipeRegionText, unit === 'mm' && styles.pipeRegionTextActive]}>METRIC / MM</Text>
+          </Pressable>
+        </View>
+        <Field label={`Side a (${unit})`} value={a} setValue={setA} />
+        <Field label={`Side b (${unit})`} value={b} setValue={setB} />
 
         <View style={styles.resultCard}>
           <Text style={styles.resultTitle}>Hypotenuse (c)</Text>
           <Text style={styles.resultBig}>
-            {c || '—'} <Text style={styles.resultUnit}>in</Text>
+            {c || '—'} <Text style={styles.resultUnit}>{unit}</Text>
           </Text>
         </View>
 
@@ -1003,6 +1040,24 @@ function PipeScreen({
   const [tubeWall, setTubeWall] = useState(String(initial?.payload.wall ?? '0.065'));
   const [slipOd, setSlipOd] = useState(String(initial?.payload.od ?? '2.375'));
   const [clearance, setClearance] = useState(String(initial?.payload.clearance ?? '0.020'));
+  const pipeUnit = region === 'EU' ? 'mm' : 'in';
+  const changeRegion = (next: string) => {
+    if (next === region) return;
+    if (tab !== 0) {
+      const factor = next === 'EU' ? 25.4 : 1 / 25.4;
+      const digits = next === 'EU' ? 2 : 3;
+      if (tab === 1) {
+        const od = Number(tubeOd); const wall = Number(tubeWall);
+        if (Number.isFinite(od)) setTubeOd((od * factor).toFixed(digits));
+        if (Number.isFinite(wall)) setTubeWall((wall * factor).toFixed(digits));
+      } else {
+        const od = Number(slipOd); const gap = Number(clearance);
+        if (Number.isFinite(od)) setSlipOd((od * factor).toFixed(digits));
+        if (Number.isFinite(gap)) setClearance((gap * factor).toFixed(digits));
+      }
+    }
+    setRegion(next);
+  };
 
   const standard = standardPipeData.find((pipe) => pipe.nps === nps) ?? standardPipeData[8];
   const carbonSchedules = Object.keys(standard.walls);
@@ -1026,14 +1081,14 @@ function PipeScreen({
   const customWallNumber = Number(tubeWall);
   const customId =
     Number.isFinite(customOdNumber) && Number.isFinite(customWallNumber) && customOdNumber > 2 * customWallNumber
-      ? (customOdNumber - (2 * customWallNumber)).toFixed(3)
+      ? (customOdNumber - (2 * customWallNumber)).toFixed(region === 'EU' ? 2 : 3)
       : '';
 
   const slipOdNumber = Number(slipOd);
   const clearanceNumber = Number(clearance);
   const slipOverId =
     Number.isFinite(slipOdNumber) && Number.isFinite(clearanceNumber)
-      ? (slipOdNumber + clearanceNumber).toFixed(3)
+      ? (slipOdNumber + clearanceNumber).toFixed(region === 'EU' ? 2 : 3)
       : '';
 
   const savedItem = tab === 0
@@ -1054,14 +1109,14 @@ function PipeScreen({
       ? makeSavedItem(
           'pipe',
           'Custom / Tube',
-          `OD ${tubeOd}" · Wall ${tubeWall}" · ID ${customId || '—'}"`,
-          { mode: 'custom', od: tubeOd, wall: tubeWall, id: customId }
+          `OD ${tubeOd} ${pipeUnit} · Wall ${tubeWall} ${pipeUnit} · ID ${customId || '—'} ${pipeUnit}`,
+          { mode: 'custom', region, unit: pipeUnit, od: tubeOd, wall: tubeWall, id: customId }
         )
       : makeSavedItem(
           'pipe',
           'Slip Fit',
-          `OD ${slipOd}" · Slip-over ID ${slipOverId || '—'}" · Clearance ${clearance}"`,
-          { mode: 'slip', od: slipOd, slipOverId, clearance }
+          `OD ${slipOd} ${pipeUnit} · Slip-over ID ${slipOverId || '—'} ${pipeUnit} · Clearance ${clearance} ${pipeUnit}`,
+          { mode: 'slip', region, unit: pipeUnit, od: slipOd, slipOverId, clearance }
         );
 
   return (
@@ -1070,18 +1125,28 @@ function PipeScreen({
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Segment labels={['PIPE', 'TUBE / CUSTOM', 'SLIP FIT']} active={tab} onChange={setTab} />
 
+        <View style={styles.pipeRegionSwitch}>
+          <Pressable onPress={() => changeRegion('US')} style={[styles.pipeRegionButton, region === 'US' && styles.pipeRegionButtonActive]}>
+            <Text style={[styles.pipeRegionText, region === 'US' && styles.pipeRegionTextActive]}>US / INCH</Text>
+            <Text style={[styles.pipeRegionSub, region === 'US' && styles.pipeRegionTextActive]}>{tab === 0 ? 'NPS + Schedule' : 'inches'}</Text>
+          </Pressable>
+          <Pressable onPress={() => changeRegion('EU')} style={[styles.pipeRegionButton, region === 'EU' && styles.pipeRegionButtonActive]}>
+            <Text style={[styles.pipeRegionText, region === 'EU' && styles.pipeRegionTextActive]}>EU / METRIC</Text>
+            <Text style={[styles.pipeRegionSub, region === 'EU' && styles.pipeRegionTextActive]}>{tab === 0 ? 'EN 10220 · DN + mm' : 'millimetres'}</Text>
+          </Pressable>
+        </View>
         {tab === 0 ? (
           <>
-            <View style={styles.pipeRegionSwitch}>
+            <View style={{ display: 'none' }}>
               <Pressable
-                onPress={() => setRegion('US')}
+                onPress={() => changeRegion('US')}
                 style={[styles.pipeRegionButton, region === 'US' && styles.pipeRegionButtonActive]}
               >
                 <Text style={[styles.pipeRegionText, region === 'US' && styles.pipeRegionTextActive]}>US / INCH</Text>
                 <Text style={[styles.pipeRegionSub, region === 'US' && styles.pipeRegionTextActive]}>NPS + Schedule</Text>
               </Pressable>
               <Pressable
-                onPress={() => setRegion('EU')}
+                onPress={() => changeRegion('EU')}
                 style={[styles.pipeRegionButton, region === 'EU' && styles.pipeRegionButtonActive]}
               >
                 <Text style={[styles.pipeRegionText, region === 'EU' && styles.pipeRegionTextActive]}>EU / METRIC</Text>
@@ -1124,23 +1189,23 @@ function PipeScreen({
           </>        ) : tab === 1 ? (
           <>
             <Text style={styles.pipeReferenceNote}>ENTER ACTUAL TUBE DIMENSIONS</Text>
-            <Text style={styles.selectorLabel}>OUTSIDE DIAMETER (IN)</Text>
+            <Text style={styles.selectorLabel}>{`OUTSIDE DIAMETER (${pipeUnit.toUpperCase()})`}</Text>
             <TextInput value={tubeOd} onChangeText={setTubeOd} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
-            <Text style={styles.selectorLabel}>WALL THICKNESS (IN)</Text>
+            <Text style={styles.selectorLabel}>{`WALL THICKNESS (${pipeUnit.toUpperCase()})`}</Text>
             <TextInput value={tubeWall} onChangeText={setTubeWall} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
             <View style={styles.infoCard}>
-              <InfoLine label="Calculated ID" value={customId ? `${customId} in` : 'Enter valid OD and wall'} />
+              <InfoLine label="Calculated ID" value={customId ? `${customId} ${pipeUnit}` : 'Enter valid OD and wall'} />
             </View>
           </>
         ) : (
           <>
             <Text style={styles.pipeReferenceNote}>SLIP FIT CALCULATOR</Text>
-            <Text style={styles.selectorLabel}>INNER PIECE OD (IN)</Text>
+            <Text style={styles.selectorLabel}>{`INNER PIECE OD (${pipeUnit.toUpperCase()})`}</Text>
             <TextInput value={slipOd} onChangeText={setSlipOd} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
-            <Text style={styles.selectorLabel}>DIAMETRAL CLEARANCE (IN)</Text>
+            <Text style={styles.selectorLabel}>{`DIAMETRAL CLEARANCE (${pipeUnit.toUpperCase()})`}</Text>
             <TextInput value={clearance} onChangeText={setClearance} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
             <View style={styles.infoCard}>
-              <InfoLine label="Required Slip-over ID" value={slipOverId ? `${slipOverId} in` : 'Enter valid dimensions'} />
+              <InfoLine label="Required Slip-over ID" value={slipOverId ? `${slipOverId} ${pipeUnit}` : 'Enter valid dimensions'} />
             </View>
           </>
         )}
@@ -1213,7 +1278,8 @@ function SelectorRow({
 }
 
 const rodMetals = ['Mild Steel', 'Stainless Steel', 'Aluminum', 'Cast Iron', 'Galvanized', 'Chromoly', 'Copper', 'Brass', 'Bronze', 'Nickel Alloys', 'Titanium', 'Magnesium', 'Copper-Nickel'] as const;
-const rodThicknesses = ['1/8" (3 mm)', '3/16" (5 mm)', '1/4" (6 mm)', '3/8" (10 mm)', '1/2" (13 mm)'] as const;
+const rodThicknessesUS = ['1/8" (3.2 mm)', '3/16" (4.8 mm)', '1/4" (6.4 mm)', '3/8" (9.5 mm)', '1/2" (12.7 mm)'] as const;
+const rodThicknessesMetric = ['3 mm', '4 mm', '5 mm', '6 mm', '8 mm', '10 mm', '12 mm'] as const;
 const rodConditions = ['Clean', 'Light Rust', 'Moderate Rust', 'Heavy Rust'] as const;
 
 function RodScreen({
@@ -1226,23 +1292,29 @@ function RodScreen({
   onToggleSave: (item: SavedItem) => void;
 }) {
   const [metal, setMetal] = useState<string>('Mild Steel');
-  const [thickness, setThickness] = useState<string>('1/4" (6 mm)');
+  const [unitSystem, setUnitSystem] = useState<'US' | 'EU'>('US');
+  const [thickness, setThickness] = useState<string>('1/4" (6.4 mm)');
   const [condition, setCondition] = useState<string>('Clean');
+  const changeRodUnits = (next: 'US' | 'EU') => {
+    if (next === unitSystem) return;
+    setUnitSystem(next);
+    setThickness(next === 'EU' ? '6 mm' : '1/4" (6.4 mm)');
+  };
 
   const recommendation = useMemo(() => {
-    const rodByThickness: Record<string, { rod: string; amps: string }> = {
-      '1/8" (3 mm)': { rod: '2.4 mm', amps: '55–90 A' },
-      '3/16" (5 mm)': { rod: '3.2 mm', amps: '75–115 A' },
-      '1/4" (6 mm)': { rod: '3.2 mm', amps: '90–130 A' },
-      '3/8" (10 mm)': { rod: '4.0 mm', amps: '120–180 A' },
-      '1/2" (13 mm)': { rod: '4.0 mm', amps: '130–190 A' },
-    };
-    const size = rodByThickness[thickness] ?? rodByThickness['1/4" (6 mm)'];
+    const thicknessMm = parseFloat(thickness.includes('"')
+      ? thickness.match(/\(([d.]+) mm\)/)?.[1] ?? '6.4'
+      : thickness);
+    const size =
+      thicknessMm <= 3.2 ? { rod: '2.5 mm', amps: '55–90 A' } :
+      thicknessMm <= 5 ? { rod: '3.2 mm', amps: '75–115 A' } :
+      thicknessMm <= 6.5 ? { rod: '3.2 mm', amps: '90–130 A' } :
+      { rod: '4.0 mm', amps: thicknessMm <= 10 ? '120–180 A' : '130–190 A' };
 
     if (metal === 'Stainless Steel') {
       return {
         ...size,
-        imperial: size.rod === '2.4 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
+        imperial: size.rod === '2.5 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
         types: 'E308L-16',
         polarity: 'DCEP or AC',
         notes: 'Common choice for 304/304L stainless. Verify the base-metal grade before selecting filler.',
@@ -1252,7 +1324,7 @@ function RodScreen({
     if (metal === 'Cast Iron') {
       return {
         ...size,
-        imperial: size.rod === '2.4 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
+        imperial: size.rod === '2.5 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
         types: 'ENi-CI / ENiFe-CI',
         polarity: 'Per electrode spec',
         notes: 'Cast-iron repairs depend on the casting and procedure. Preheat and controlled cooling may be required.',
@@ -1311,7 +1383,7 @@ function RodScreen({
       const special = specialMetals[metal];
       return {
         ...size,
-        imperial: size.rod === '2.4 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
+        imperial: size.rod === '2.5 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
         ...special,
       };
     }
@@ -1319,7 +1391,7 @@ function RodScreen({
     const dirty = condition !== 'Clean';
     return {
       ...size,
-      imperial: size.rod === '2.4 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
+      imperial: size.rod === '2.5 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
       types: dirty ? 'E6011' : 'E6011, E7018',
       polarity: dirty ? 'AC or DCEP' : 'AC or DCEP',
       notes:
@@ -1339,7 +1411,8 @@ function RodScreen({
       metal,
       thickness,
       condition,
-      rod: `${recommendation.rod} ${recommendation.imperial}`,
+      rod: unitSystem === 'EU' ? recommendation.rod : `${recommendation.rod} ${recommendation.imperial}`,
+      unitSystem,
       types: recommendation.types,
       polarity: recommendation.polarity,
       amperage: recommendation.amps,
@@ -1350,14 +1423,31 @@ function RodScreen({
     <>
       <Header title="WELDING ROD SELECTOR" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.pipeRegionSwitch}>
+          <Pressable onPress={() => changeRodUnits('US')} style={[styles.pipeRegionButton, unitSystem === 'US' && styles.pipeRegionButtonActive]}>
+            <Text style={[styles.pipeRegionText, unitSystem === 'US' && styles.pipeRegionTextActive]}>US / INCH</Text>
+          </Pressable>
+          <Pressable onPress={() => changeRodUnits('EU')} style={[styles.pipeRegionButton, unitSystem === 'EU' && styles.pipeRegionButtonActive]}>
+            <Text style={[styles.pipeRegionText, unitSystem === 'EU' && styles.pipeRegionTextActive]}>EU / METRIC</Text>
+          </Pressable>
+        </View>
+        {unitSystem === 'EU' ? (
+          <View style={styles.metricModeBanner}>
+            <Ionicons name="information-circle-outline" size={20} color={BLACK} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.metricModeTitle}>METRIC CONSUMABLE SIZES</Text>
+              <Text style={styles.metricModeText}>Material thickness and electrode diameter are shown as native millimetre sizes.</Text>
+            </View>
+          </View>
+        ) : null}
         <SelectorRow label="Metal" value={metal} options={rodMetals} onChange={setMetal} />
-        <SelectorRow label="Thickness" value={thickness} options={rodThicknesses} onChange={setThickness} />
+        <SelectorRow label="Thickness" value={thickness} options={unitSystem === 'EU' ? rodThicknessesMetric : rodThicknessesUS} onChange={setThickness} />
         <SelectorRow label="Condition" value={condition} options={rodConditions} onChange={setCondition} />
 
         <View style={styles.recommendedCard}>
           <Text style={styles.recommendedLabel}>Recommended Rod</Text>
           <Text style={styles.recommendedBig}>{recommendation.rod}</Text>
-          <Text style={styles.recommendedSub}>{recommendation.imperial}</Text>
+          {unitSystem === 'US' ? <Text style={styles.recommendedSub}>{recommendation.imperial}</Text> : null}
         </View>
 
         <View style={styles.infoCard}>
@@ -1447,11 +1537,9 @@ function ThicknessScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
           >
-            <Image
-              source={APPROVED_THICKNESS}
-              style={styles.thicknessReferenceImage}
-              resizeMode="stretch"
-            />
+            <View style={styles.thicknessReferenceVisual}>
+              <View style={[styles.thicknessReferenceBar, { height: Math.max(3, Math.min(24, item.previewHeight)) }]} />
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.referenceTitle}>{item.label}</Text>
               <Text style={styles.referenceSub}>{item.value}</Text>
@@ -2665,6 +2753,24 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginRight: 12,
     backgroundColor: '#777',
+  },
+  thicknessReferenceVisual: {
+    width: 61,
+    height: 45,
+    borderRadius: 5,
+    marginRight: 12,
+    backgroundColor: '#d9ad34',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  thicknessReferenceBar: {
+    width: 48,
+    minHeight: 3,
+    borderRadius: 2,
+    backgroundColor: '#303234',
+    borderWidth: 1,
+    borderColor: '#55585a',
   },
   referenceTitle: {
     flex: 1,
