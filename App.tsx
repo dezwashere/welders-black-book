@@ -1240,13 +1240,39 @@ function PipeScreen({
           </>
         ) : (
           <>
-            <Text style={styles.pipeReferenceNote}>SLIP FIT CALCULATOR</Text>
-            <Text style={styles.selectorLabel}>{`INNER PIECE OD (${pipeUnit.toUpperCase()})`}</Text>
+            <Text style={styles.pipeReferenceNote}>MAKE ONE PIECE SLIDE OVER ANOTHER</Text>
+            <View style={styles.slipFitDiagram}>
+              <View style={styles.slipOuterTube}>
+                <View style={styles.slipInnerTube} />
+              </View>
+              <View style={styles.slipDiagramLabels}>
+                <Text style={styles.slipDiagramText}>OUTER PIECE</Text>
+                <Text style={styles.slipDiagramText}>INNER PIECE</Text>
+              </View>
+            </View>
+
+            <Text style={styles.slipStep}>1 · MEASURE THE INNER PIECE</Text>
+            <Text style={styles.selectorLabel}>{`Outside Diameter (OD) · ${pipeUnit}`}</Text>
             <TextInput value={slipOd} onChangeText={setSlipOd} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
-            <Text style={styles.selectorLabel}>{`DIAMETRAL CLEARANCE (${pipeUnit.toUpperCase()})`}</Text>
+
+            <Text style={styles.slipStep}>2 · CHOOSE THE TOTAL CLEARANCE</Text>
+            <Text style={styles.slipHelp}>Extra room across the full diameter so the outer piece can slide over it.</Text>
+            <Text style={styles.selectorLabel}>{`Total Clearance · ${pipeUnit}`}</Text>
             <TextInput value={clearance} onChangeText={setClearance} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
-            <View style={styles.infoCard}>
-              <InfoLine label="Required Slip-over ID" value={slipOverId ? `${slipOverId} ${pipeUnit}` : 'Enter valid dimensions'} />
+
+            <View style={styles.slipResultCard}>
+              <Text style={styles.slipResultEyebrow}>OUTER PIECE NEEDS AT LEAST</Text>
+              <Text style={styles.slipResultValue}>{slipOverId || '—'} <Text style={styles.resultUnit}>{pipeUnit}</Text></Text>
+              <Text style={styles.slipResultLabel}>INSIDE DIAMETER (ID)</Text>
+              <Text style={styles.slipResultHelp}>Find an outer tube or pipe with an ID at least this large.</Text>
+            </View>
+
+            <View style={styles.metricModeBanner}>
+              <Ionicons name="information-circle-outline" size={20} color={BLACK} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.metricModeTitle}>HOW IT WORKS</Text>
+                <Text style={styles.metricModeText}>Inner piece OD + total clearance = minimum outer piece ID. Always verify the actual material dimensions before fitting.</Text>
+              </View>
             </View>
           </>
         )}
@@ -2816,6 +2842,91 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: 12,
     backgroundColor: '#333',
+  },
+  slipFitDiagram: {
+    height: 112,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#343637',
+    backgroundColor: '#111213',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  slipOuterTube: {
+    width: 210,
+    height: 54,
+    borderWidth: 6,
+    borderColor: '#aeb2b4',
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slipInnerTube: {
+    width: 160,
+    height: 30,
+    borderWidth: 5,
+    borderColor: '#f3f0e8',
+    borderRadius: 15,
+    backgroundColor: '#292b2c',
+  },
+  slipDiagramLabels: {
+    width: 210,
+    marginTop: 7,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  slipDiagramText: {
+    color: MUTED,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  slipStep: {
+    color: YELLOW,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  slipHelp: {
+    color: MUTED,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: -3,
+    marginBottom: 9,
+  },
+  slipResultCard: {
+    backgroundColor: '#f3f0e8',
+    borderRadius: 12,
+    padding: 18,
+    marginTop: 8,
+    marginBottom: 14,
+  },
+  slipResultEyebrow: {
+    color: '#303234',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+  },
+  slipResultValue: {
+    color: BLACK,
+    fontSize: 46,
+    lineHeight: 54,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+  slipResultLabel: {
+    color: BLACK,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  slipResultHelp: {
+    color: '#454748',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 7,
   },
   thicknessReferenceImage: {
     width: 61,
