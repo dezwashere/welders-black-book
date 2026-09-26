@@ -861,7 +861,7 @@ function SelectorRow({
   );
 }
 
-const rodMetals = ['Mild Steel', 'Stainless Steel', 'Cast Iron'] as const;
+const rodMetals = ['Mild Steel', 'Stainless Steel', 'Aluminum', 'Cast Iron', 'Galvanized', 'Chromoly', 'Copper', 'Brass', 'Bronze', 'Nickel Alloys', 'Titanium', 'Magnesium', 'Copper-Nickel'] as const;
 const rodThicknesses = ['1/8" (3 mm)', '3/16" (5 mm)', '1/4" (6 mm)', '3/8" (10 mm)', '1/2" (13 mm)'] as const;
 const rodConditions = ['Clean', 'Light Rust', 'Moderate Rust', 'Heavy Rust'] as const;
 
