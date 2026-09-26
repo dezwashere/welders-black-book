@@ -1274,12 +1274,14 @@ export default function App() {
 
   const combineSaved = (parts: SavedItem[], name: string) => {
     if (parts.length < 2) return;
-    const fallbackTitle = parts
-      .map((part) => part.title)
-      .slice(0, 2)
-      .join(' + ');
-    const extra = parts.length > 2 ? ` + ${parts.length - 2} more` : '';
-    const title = name || fallbackTitle + extra;
+    const untitledNumbers = savedItems
+      .filter((item) => item.kind === 'setup')
+      .map((item) => /^Untitled (\\d+)$/.exec(item.title))
+      .filter((match): match is RegExpExecArray => Boolean(match))
+      .map((match) => Number(match[1]))
+      .filter(Number.isFinite);
+    const nextUntitled = untitledNumbers.length ? Math.max(...untitledNumbers) + 1 : 1;
+    const title = name || `Untitled ${nextUntitled}`;
     const setup: SavedItem = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       signature: `setup|${title}|${parts.map((part) => part.signature).sort().join('|')}`,
