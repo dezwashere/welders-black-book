@@ -973,6 +973,7 @@ function PipeScreen({
 }) {
   const initialMode = String(initial?.payload.mode ?? 'standard');
   const [tab, setTab] = useState(initialMode === 'custom' ? 1 : initialMode === 'slip' ? 2 : 0);
+  const [standardFamily, setStandardFamily] = useState(String(initial?.payload.standard ?? 'ASME B36.10'));
   const [nps, setNps] = useState(String(initial?.payload.nps ?? '2'));
   const [schedule, setSchedule] = useState(String(initial?.payload.schedule ?? '40'));
   const [tubeOd, setTubeOd] = useState(String(initial?.payload.od ?? '1.000'));
@@ -981,7 +982,16 @@ function PipeScreen({
   const [clearance, setClearance] = useState(String(initial?.payload.clearance ?? '0.020'));
 
   const standard = standardPipeData.find((pipe) => pipe.nps === nps) ?? standardPipeData[8];
-  const wall = standard.walls[schedule as keyof typeof standard.walls];
+  const carbonSchedules = Object.keys(standard.walls);
+  const stainlessSchedules = carbonSchedules
+    .filter((value) => ['5', '10', '40', '80'].includes(value))
+    .map((value) => `${value}S`);
+  const scheduleOptions = standardFamily === 'ASME B36.19 Stainless' ? stainlessSchedules : carbonSchedules;
+  const activeSchedule = scheduleOptions.includes(schedule)
+    ? schedule
+    : (standardFamily === 'ASME B36.19 Stainless' ? (stainlessSchedules.includes('40S') ? '40S' : stainlessSchedules[0]) : (carbonSchedules.includes('40') ? '40' : carbonSchedules[0]));
+  const wallKey = activeSchedule.replace('S', '');
+  const wall = standard.walls[wallKey];
   const standardId = (standard.od - (2 * wall)).toFixed(3);
 
   const customOdNumber = Number(tubeOd);
@@ -1001,9 +1011,9 @@ function PipeScreen({
   const savedItem = tab === 0
     ? makeSavedItem(
         'pipe',
-        `NPS ${nps}" · Sch ${schedule}`,
+        `NPS ${nps}" · Sch ${activeSchedule}`,
         `OD ${standard.od.toFixed(3)}" · Wall ${wall.toFixed(3)}" · ID ${standardId}"`,
-        { mode: 'standard', nps, dn: standard.dn, schedule, od: standard.od.toFixed(3), wall: wall.toFixed(3), id: standardId }
+        { mode: 'standard', standard: standardFamily, nps, dn: standard.dn, schedule: activeSchedule, od: standard.od.toFixed(3), wall: wall.toFixed(3), id: standardId }
       )
     : tab === 1
       ? makeSavedItem(
@@ -1028,8 +1038,9 @@ function PipeScreen({
         {tab === 0 ? (
           <>
             <Text style={styles.pipeReferenceNote}>SELECT PIPE SIZE</Text>
+            <SelectorRow label="STANDARD" value={standardFamily} options={['ASME B36.10', 'ASME B36.19 Stainless']} onChange={setStandardFamily} />
             <SelectorRow label="NPS / NB" value={nps} options={standardPipeData.map((pipe) => pipe.nps)} onChange={setNps} />
-            <SelectorRow label="SCHEDULE" value={schedule} options={['10', '40', '80']} onChange={setSchedule} />
+            <SelectorRow label="SCHEDULE" value={activeSchedule} options={scheduleOptions} onChange={setSchedule} />
             <View style={styles.infoCard}>
               <InfoLine label="DN" value={`DN ${standard.dn}`} />
               <InfoLine label="Outside Diameter" value={`${standard.od.toFixed(3)} in`} />
