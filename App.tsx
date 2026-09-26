@@ -110,6 +110,26 @@ const standardPipeData: { nps: string; dn: string; od: number; walls: Record<str
   { nps: '4', dn: '100', od: 4.500, walls: { '5': 0.083, '10': 0.120, '40': 0.237, '80': 0.337, '120': 0.438, '160': 0.531, 'XXS': 0.674 } },
 ] as const;
 
+const enPipeData: { dn: string; odMm: number; wallsMm: number[] }[] = [
+  { dn: '6', odMm: 10.2, wallsMm: [1.6, 2.0, 2.3] },
+  { dn: '8', odMm: 13.5, wallsMm: [2.0, 2.3, 2.6] },
+  { dn: '10', odMm: 17.2, wallsMm: [2.0, 2.3, 2.6, 2.9] },
+  { dn: '15', odMm: 21.3, wallsMm: [2.0, 2.3, 2.6, 2.9, 3.2] },
+  { dn: '20', odMm: 26.9, wallsMm: [2.0, 2.3, 2.6, 2.9, 3.2, 3.6] },
+  { dn: '25', odMm: 33.7, wallsMm: [2.6, 2.9, 3.2, 3.6, 4.0] },
+  { dn: '32', odMm: 42.4, wallsMm: [2.6, 2.9, 3.2, 3.6, 4.0, 4.5] },
+  { dn: '40', odMm: 48.3, wallsMm: [2.6, 2.9, 3.2, 3.6, 4.0, 4.5, 5.0] },
+  { dn: '50', odMm: 60.3, wallsMm: [2.9, 3.2, 3.6, 4.0, 4.5, 5.0, 5.6] },
+  { dn: '65', odMm: 76.1, wallsMm: [2.9, 3.2, 3.6, 4.0, 4.5, 5.0, 5.6, 6.3] },
+  { dn: '80', odMm: 88.9, wallsMm: [3.2, 3.6, 4.0, 4.5, 5.0, 5.6, 6.3, 7.1] },
+  { dn: '100', odMm: 114.3, wallsMm: [3.6, 4.0, 4.5, 5.0, 5.6, 6.3, 7.1, 8.0, 8.8] },
+  { dn: '125', odMm: 139.7, wallsMm: [4.0, 4.5, 5.0, 5.6, 6.3, 7.1, 8.0, 8.8, 10.0] },
+  { dn: '150', odMm: 168.3, wallsMm: [4.5, 5.0, 5.6, 6.3, 7.1, 8.0, 8.8, 10.0, 11.0] },
+  { dn: '200', odMm: 219.1, wallsMm: [5.0, 5.6, 6.3, 7.1, 8.0, 8.8, 10.0, 11.0, 12.5] },
+  { dn: '250', odMm: 273.0, wallsMm: [5.6, 6.3, 7.1, 8.0, 8.8, 10.0, 11.0, 12.5, 14.2] },
+  { dn: '300', odMm: 323.9, wallsMm: [5.6, 6.3, 7.1, 8.0, 8.8, 10.0, 11.0, 12.5, 14.2, 16.0] },
+];
+
 const fallbackPipes = [
   ['1/8', '0.405', '0.269'],
   ['1/4', '0.540', '0.364'],
@@ -973,7 +993,10 @@ function PipeScreen({
 }) {
   const initialMode = String(initial?.payload.mode ?? 'standard');
   const [tab, setTab] = useState(initialMode === 'custom' ? 1 : initialMode === 'slip' ? 2 : 0);
+  const [region, setRegion] = useState(String(initial?.payload.region ?? 'US'));
   const [standardFamily, setStandardFamily] = useState(String(initial?.payload.standard ?? 'ASME B36.10'));
+  const [enDn, setEnDn] = useState(String(initial?.payload.dn ?? '50'));
+  const [enWall, setEnWall] = useState(String(initial?.payload.wallMm ?? '3.6'));
   const [nps, setNps] = useState(String(initial?.payload.nps ?? '2'));
   const [schedule, setSchedule] = useState(String(initial?.payload.schedule ?? '40'));
   const [tubeOd, setTubeOd] = useState(String(initial?.payload.od ?? '1.000'));
@@ -994,6 +1017,11 @@ function PipeScreen({
   const wall = standard.walls[wallKey];
   const standardId = (standard.od - (2 * wall)).toFixed(3);
 
+  const enStandard = enPipeData.find((pipe) => pipe.dn === enDn) ?? enPipeData[8];
+  const enWallOptions = enStandard.wallsMm.map((value) => String(value));
+  const activeEnWall = enWallOptions.includes(enWall) ? Number(enWall) : enStandard.wallsMm[0];
+  const enId = (enStandard.odMm - (2 * activeEnWall)).toFixed(1);
+
   const customOdNumber = Number(tubeOd);
   const customWallNumber = Number(tubeWall);
   const customId =
@@ -1009,12 +1037,19 @@ function PipeScreen({
       : '';
 
   const savedItem = tab === 0
-    ? makeSavedItem(
-        'pipe',
-        `NPS ${nps}" · Sch ${activeSchedule}`,
-        `OD ${standard.od.toFixed(3)}" · Wall ${wall.toFixed(3)}" · ID ${standardId}"`,
-        { mode: 'standard', standard: standardFamily, nps, dn: standard.dn, schedule: activeSchedule, od: standard.od.toFixed(3), wall: wall.toFixed(3), id: standardId }
-      )
+    ? region === 'EU'
+      ? makeSavedItem(
+          'pipe',
+          `EN 10220 · DN ${enDn}`,
+          `OD ${enStandard.odMm} mm · Wall ${activeEnWall} mm · ID ${enId} mm`,
+          { mode: 'standard', region: 'EU', standard: 'EN 10220', dn: enDn, odMm: enStandard.odMm, wallMm: activeEnWall, idMm: enId }
+        )
+      : makeSavedItem(
+          'pipe',
+          `NPS ${nps}" · Sch ${activeSchedule}`,
+          `OD ${standard.od.toFixed(3)}" · Wall ${wall.toFixed(3)}" · ID ${standardId}"`,
+          { mode: 'standard', region: 'US', standard: standardFamily, nps, dn: standard.dn, schedule: activeSchedule, od: standard.od.toFixed(3), wall: wall.toFixed(3), id: standardId }
+        )
     : tab === 1
       ? makeSavedItem(
           'pipe',
@@ -1037,18 +1072,49 @@ function PipeScreen({
 
         {tab === 0 ? (
           <>
-            <Text style={styles.pipeReferenceNote}>SELECT PIPE SIZE</Text>
-            <SelectorRow label="STANDARD" value={standardFamily} options={['ASME B36.10', 'ASME B36.19 Stainless']} onChange={setStandardFamily} />
-            <SelectorRow label="NPS / NB" value={nps} options={standardPipeData.map((pipe) => pipe.nps)} onChange={setNps} />
-            <SelectorRow label="SCHEDULE" value={activeSchedule} options={scheduleOptions} onChange={setSchedule} />
-            <View style={styles.infoCard}>
-              <InfoLine label="DN" value={`DN ${standard.dn}`} />
-              <InfoLine label="Outside Diameter" value={`${standard.od.toFixed(3)} in`} />
-              <InfoLine label="Wall Thickness" value={`${wall.toFixed(3)} in`} />
-              <InfoLine label="Inside Diameter" value={`${standardId} in`} />
+            <View style={styles.pipeRegionSwitch}>
+              <Pressable
+                onPress={() => setRegion('US')}
+                style={[styles.pipeRegionButton, region === 'US' && styles.pipeRegionButtonActive]}
+              >
+                <Text style={[styles.pipeRegionText, region === 'US' && styles.pipeRegionTextActive]}>US / INCH</Text>
+                <Text style={[styles.pipeRegionSub, region === 'US' && styles.pipeRegionTextActive]}>NPS + Schedule</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setRegion('EU')}
+                style={[styles.pipeRegionButton, region === 'EU' && styles.pipeRegionButtonActive]}
+              >
+                <Text style={[styles.pipeRegionText, region === 'EU' && styles.pipeRegionTextActive]}>EU / METRIC</Text>
+                <Text style={[styles.pipeRegionSub, region === 'EU' && styles.pipeRegionTextActive]}>DN + mm</Text>
+              </Pressable>
             </View>
-          </>
-        ) : tab === 1 ? (
+
+            {region === 'US' ? (
+              <>
+                <Text style={styles.pipeReferenceNote}>US PIPE SIZE</Text>
+                <SelectorRow label="MATERIAL STANDARD" value={standardFamily} options={['ASME B36.10', 'ASME B36.19 Stainless']} onChange={setStandardFamily} />
+                <SelectorRow label="NPS / NOMINAL PIPE SIZE" value={nps} options={standardPipeData.map((pipe) => pipe.nps)} onChange={setNps} />
+                <SelectorRow label="SCHEDULE" value={activeSchedule} options={scheduleOptions} onChange={setSchedule} />
+                <View style={styles.infoCard}>
+                  <InfoLine label="DN Equivalent" value={`DN ${standard.dn}`} />
+                  <InfoLine label="Outside Diameter" value={`${standard.od.toFixed(3)} in`} />
+                  <InfoLine label="Wall Thickness" value={`${wall.toFixed(3)} in`} />
+                  <InfoLine label="Inside Diameter" value={`${standardId} in`} />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.pipeReferenceNote}>EUROPEAN METRIC PIPE · EN 10220</Text>
+                <SelectorRow label="DN / NOMINAL DIAMETER" value={enDn} options={enPipeData.map((pipe) => pipe.dn)} onChange={setEnDn} />
+                <SelectorRow label="WALL THICKNESS (MM)" value={String(activeEnWall)} options={enWallOptions} onChange={setEnWall} />
+                <View style={styles.infoCard}>
+                  <InfoLine label="Outside Diameter" value={`${enStandard.odMm} mm`} />
+                  <InfoLine label="Wall Thickness" value={`${activeEnWall} mm`} />
+                  <InfoLine label="Inside Diameter" value={`${enId} mm`} />
+                </View>
+              </>
+            )}
+          </>        ) : tab === 1 ? (
           <>
             <Text style={styles.pipeReferenceNote}>ENTER ACTUAL TUBE DIMENSIONS</Text>
             <Text style={styles.selectorLabel}>OUTSIDE DIAMETER (IN)</Text>
@@ -2370,6 +2436,38 @@ const styles = StyleSheet.create({
   tableRowSelected: {
     backgroundColor: '#2d2b20',
     borderColor: YELLOW,
+  },
+  pipeRegionSwitch: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+    marginBottom: 6,
+  },
+  pipeRegionButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: CARD,
+  },
+  pipeRegionButtonActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW,
+  },
+  pipeRegionText: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  pipeRegionSub: {
+    color: MUTED,
+    fontSize: 11,
+    marginTop: 3,
+  },
+  pipeRegionTextActive: {
+    color: BLACK,
   },
   pipeReferenceNote: {
     color: MUTED,
