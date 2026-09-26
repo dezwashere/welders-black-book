@@ -50,6 +50,7 @@ type SavedProject = {
   id: string;
   name: string;
   itemIds: string[];
+  notes?: string;
 };
 
 const SAVED_KEY = 'wbb_saved_items_v1';
@@ -528,6 +529,7 @@ function ProjectScreen({
   onOpen,
   onShare,
   onDelete,
+  onNotesChange,
 }: {
   project: SavedProject;
   items: SavedItem[];
@@ -535,6 +537,7 @@ function ProjectScreen({
   onOpen: (item: SavedItem) => void;
   onShare: (item: SavedItem) => void;
   onDelete: (item: SavedItem) => void;
+  onNotesChange: (projectId: string, notes: string) => void;
 }) {
   const projectItems = project.itemIds
     .map((id) => items.find((item) => item.id === id))
@@ -552,6 +555,21 @@ function ProjectScreen({
               {projectItems.length === 1 ? '1 saved item' : `${projectItems.length} saved items`}
             </Text>
           </View>
+        </View>
+        <View style={styles.projectNotesCard}>
+          <View style={styles.projectNotesHeader}>
+            <Ionicons name="document-text-outline" size={19} color={YELLOW} />
+            <Text style={styles.projectNotesTitle}>NOTES</Text>
+          </View>
+          <TextInput
+            value={project.notes ?? ''}
+            onChangeText={(notes) => onNotesChange(project.id, notes)}
+            placeholder="Type notes here..."
+            placeholderTextColor="#777"
+            style={styles.projectNotesInput}
+            multiline
+            textAlignVertical="top"
+          />
         </View>
         {projectItems.map((item) => (
           <View key={item.id} style={styles.savedCard}>
@@ -1434,6 +1452,14 @@ export default function App() {
     setPendingSave(null);
   };
 
+  const updateProjectNotes = (projectId: string, notes: string) => {
+    setProjects((current) =>
+      current.map((project) =>
+        project.id === projectId ? { ...project, notes } : project
+      )
+    );
+  };
+
   const deleteSaved = (item: SavedItem) => {
     setSavedItems((current) => current.filter((saved) => saved.id !== item.id));
     setProjects((current) =>
@@ -1708,6 +1734,7 @@ export default function App() {
           onOpen={openSaved}
           onShare={shareSaved}
           onDelete={deleteSaved}
+          onNotesChange={updateProjectNotes}
         />
       </SafeAreaView>
     );
@@ -2792,5 +2819,37 @@ const styles = StyleSheet.create({
     color: MUTED,
     fontSize: 13,
     fontWeight: '900',
+  },
+  projectNotesCard: {
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 12,
+    marginBottom: 14,
+  },
+  projectNotesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginBottom: 9,
+  },
+  projectNotesTitle: {
+    color: TEXT,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+  },
+  projectNotesInput: {
+    minHeight: 110,
+    backgroundColor: PANEL_DARK,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BORDER,
+    color: TEXT,
+    fontSize: 15,
+    lineHeight: 21,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
 });
