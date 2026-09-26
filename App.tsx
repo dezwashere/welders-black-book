@@ -1267,13 +1267,7 @@ function PipeScreen({
               <Text style={styles.slipResultHelp}>Find an outer tube or pipe with an ID at least this large.</Text>
             </View>
 
-            <View style={styles.metricModeBanner}>
-              <Ionicons name="information-circle-outline" size={20} color={BLACK} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.metricModeTitle}>HOW IT WORKS</Text>
-                <Text style={styles.metricModeText}>Inner piece OD + total clearance = minimum outer piece ID. Always verify the actual material dimensions before fitting.</Text>
-              </View>
-            </View>
+            <Text style={styles.slipDimensionNote}>Actual tubing dimensions can vary. Measure the material when fit matters.</Text>
           </>
         )}
 
@@ -2927,6 +2921,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginTop: 7,
+  },
+  slipDimensionNote: {
+    color: MUTED,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 0,
+    marginBottom: 4,
   },
   thicknessReferenceImage: {
     width: 61,
