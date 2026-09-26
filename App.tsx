@@ -44,6 +44,7 @@ type SavedItem = {
   title: string;
   subtitle: string;
   payload: Record<string, string | number>;
+  notes?: string;
 };
 
 type SavedProject = {
@@ -450,6 +451,7 @@ function SavedScreen({
   onShare,
   onDelete,
   onOpenProject,
+  onNotesChange,
 }: {
   items: SavedItem[];
   projects: SavedProject[];
@@ -458,6 +460,7 @@ function SavedScreen({
   onShare: (item: SavedItem) => void;
   onDelete: (item: SavedItem) => void;
   onOpenProject: (project: SavedProject) => void;
+  onNotesChange: (itemId: string, notes: string) => void;
 }) {
   const groupedIds = new Set(projects.flatMap((project) => project.itemIds));
   const individualItems = items.filter((item) => !groupedIds.has(item.id));
@@ -500,6 +503,15 @@ function SavedScreen({
                 <View style={{ flex: 1 }}>
                   <Text style={styles.savedCardTitle}>{item.title}</Text>
                   <Text style={styles.savedCardSub}>{item.subtitle}</Text>
+                  <TextInput
+                    value={item.notes ?? ''}
+                    onChangeText={(notes) => onNotesChange(item.id, notes)}
+                    placeholder="Add notes..."
+                    placeholderTextColor="#777"
+                    style={styles.savedItemNotesInput}
+                    multiline
+                    textAlignVertical="top"
+                  />
                 </View>
                 <Pressable onPress={() => onDelete(item)} hitSlop={10} style={styles.savedDelete}>
                   <Ionicons name="trash-outline" size={20} color={MUTED} />
@@ -542,6 +554,18 @@ function ProjectScreen({
   const projectItems = project.itemIds
     .map((id) => items.find((item) => item.id === id))
     .filter((item): item is SavedItem => Boolean(item));
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((current) =>
+      current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id]
+    );
+  };
+
+  const payloadLabel = (key: string) =>
+    key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (letter) => letter.toUpperCase());
 
   return (
     <>
@@ -571,29 +595,50 @@ function ProjectScreen({
             textAlignVertical="top"
           />
         </View>
-        {projectItems.map((item) => (
-          <View key={item.id} style={styles.savedCard}>
-            <View style={styles.savedCardTop}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.savedPartKind}>{item.kind.toUpperCase()}</Text>
-                <Text style={styles.savedCardTitle}>{item.title}</Text>
-                <Text style={styles.savedCardSub}>{item.subtitle}</Text>
-              </View>
-              <Pressable onPress={() => onDelete(item)} hitSlop={10} style={styles.savedDelete}>
-                <Ionicons name="trash-outline" size={20} color={MUTED} />
+        {projectItems.map((item) => {
+          const expanded = expandedIds.includes(item.id);
+          return (
+            <View key={item.id} style={styles.savedCard}>
+              <Pressable onPress={() => toggleExpanded(item.id)} style={styles.savedCardTop}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.savedPartKind}>{item.kind.toUpperCase()}</Text>
+                  <Text style={styles.savedCardTitle}>{item.title}</Text>
+                  <Text style={styles.savedCardSub}>{item.subtitle}</Text>
+                </View>
+                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={22} color={TEXT} />
               </Pressable>
+
+              {expanded ? (
+                <View style={styles.savedDropdown}>
+                  {Object.entries(item.payload).map(([key, value]) => (
+                    <View key={key} style={styles.savedDropdownRow}>
+                      <Text style={styles.savedDropdownLabel}>{payloadLabel(key)}</Text>
+                      <Text style={styles.savedDropdownValue}>{String(value)}</Text>
+                    </View>
+                  ))}
+                  {item.notes ? (
+                    <View style={styles.savedDropdownRow}>
+                      <Text style={styles.savedDropdownLabel}>Notes</Text>
+                      <Text style={styles.savedDropdownValue}>{item.notes}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.savedActions}>
+                    <Pressable onPress={() => onOpen(item)} style={styles.savedActionPrimary}>
+                      <Text style={styles.savedActionPrimaryText}>OPEN</Text>
+                    </Pressable>
+                    <Pressable onPress={() => onShare(item)} style={styles.savedActionSecondary}>
+                      <Ionicons name="share-outline" size={18} color={TEXT} />
+                      <Text style={styles.savedActionSecondaryText}>SHARE</Text>
+                    </Pressable>
+                    <Pressable onPress={() => onDelete(item)} style={styles.savedDelete}>
+                      <Ionicons name="trash-outline" size={20} color={MUTED} />
+                    </Pressable>
+                  </View>
+                </View>
+              ) : null}
             </View>
-            <View style={styles.savedActions}>
-              <Pressable onPress={() => onOpen(item)} style={styles.savedActionPrimary}>
-                <Text style={styles.savedActionPrimaryText}>OPEN</Text>
-              </Pressable>
-              <Pressable onPress={() => onShare(item)} style={styles.savedActionSecondary}>
-                <Ionicons name="share-outline" size={18} color={TEXT} />
-                <Text style={styles.savedActionSecondaryText}>SHARE</Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
     </>
   );
@@ -848,8 +893,11 @@ function TriangleScreen({
 }
 
 function PipeScreen({ onBack }: { onBack: () => void }) {
-  const [rows, setRows] = useState(fallbackPipes);
+  const [rows, setRows] = useState<string[][]>(fallbackPipes.map((row) => [...row]));
   const [tab, setTab] = useState(0);
+  const [slipClearances, setSlipClearances] = useState<string[]>(
+    fallbackPipes.map(() => '0.020')
+  );
 
   useEffect(() => {
     supabase
@@ -860,70 +908,98 @@ function PipeScreen({ onBack }: { onBack: () => void }) {
         if (data?.length) {
           setRows(
             data.map((r) => [
-              r.nominal_size,
+              String(r.nominal_size),
               String(r.od_in),
               String(r.sch40_id_in),
             ])
           );
+          setSlipClearances(data.map(() => '0.020'));
         }
       });
   }, []);
 
+  const updateRow = (rowIndex: number, columnIndex: number, value: string) => {
+    setRows((current) =>
+      current.map((row, index) =>
+        index === rowIndex ? row.map((cell, column) => column === columnIndex ? value : cell) : row
+      )
+    );
+  };
+
+  const updateClearance = (rowIndex: number, value: string) => {
+    setSlipClearances((current) =>
+      current.map((cell, index) => index === rowIndex ? value : cell)
+    );
+  };
+
+  const EditableCell = ({
+    value,
+    onChangeText,
+    keyboardType = 'decimal-pad',
+  }: {
+    value: string;
+    onChangeText: (value: string) => void;
+    keyboardType?: 'decimal-pad' | 'default';
+  }) => (
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType={keyboardType}
+      style={styles.tableInput}
+      selectTextOnFocus
+      placeholderTextColor="#777"
+    />
+  );
+
   return (
     <>
       <Header title="PIPE SIZES" onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content}>
-        <Segment
-          labels={['NB Sizes', 'OD / ID', 'Slip Fit']}
-          active={tab}
-          onChange={setTab}
-        />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Segment labels={['NB Sizes', 'OD / ID', 'Slip Fit']} active={tab} onChange={setTab} />
 
-        {tab === 0 ? (
+        {tab === 0 || tab === 1 ? (
           <View style={styles.table}>
             <View style={[styles.tableRow, styles.tableHeaderRow]}>
-              <Text style={styles.tableHeader}>NB{'\\n'}(in)</Text>
-              <Text style={styles.tableHeader}>OD{'\\n'}(in)</Text>
-              <Text style={styles.tableHeader}>Schedule 40{'\\n'}ID (in)</Text>
+              <Text style={styles.tableHeader}>NB{'\n'}(in)</Text>
+              <Text style={styles.tableHeader}>OD{'\n'}(in)</Text>
+              <Text style={styles.tableHeader}>{tab === 0 ? 'Schedule 40' : 'ID'}{'\n'}(in)</Text>
             </View>
             {rows.map((row, index) => (
               <View key={index} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{row[0]}</Text>
-                <Text style={styles.tableCell}>{row[1]}</Text>
-                <Text style={styles.tableCell}>{row[2]}</Text>
-              </View>
-            ))}
-          </View>
-        ) : tab === 1 ? (
-          <View style={styles.table}>
-            <View style={[styles.tableRow, styles.tableHeaderRow]}>
-              <Text style={styles.tableHeader}>NB{'\\n'}(in)</Text>
-              <Text style={styles.tableHeader}>OD{'\\n'}(in)</Text>
-              <Text style={styles.tableHeader}>ID{'\\n'}(in)</Text>
-            </View>
-            {rows.map((row, index) => (
-              <View key={index} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{row[0]}</Text>
-                <Text style={styles.tableCell}>{row[1]}</Text>
-                <Text style={styles.tableCell}>{row[2]}</Text>
+                <EditableCell value={row[0]} onChangeText={(value) => updateRow(index, 0, value)} keyboardType="default" />
+                <EditableCell value={row[1]} onChangeText={(value) => updateRow(index, 1, value)} />
+                <EditableCell value={row[2]} onChangeText={(value) => updateRow(index, 2, value)} />
               </View>
             ))}
           </View>
         ) : (
           <View style={styles.table}>
             <View style={[styles.tableRow, styles.tableHeaderRow]}>
-              <Text style={styles.tableHeader}>PIPE OD{'\\n'}(in)</Text>
-              <Text style={styles.tableHeader}>SLIP OVER ID{'\\n'}(in)</Text>
-              <Text style={styles.tableHeader}>CLEARANCE{'\\n'}(in)</Text>
+              <Text style={styles.tableHeader}>PIPE OD{'\n'}(in)</Text>
+              <Text style={styles.tableHeader}>SLIP OVER ID{'\n'}(in)</Text>
+              <Text style={styles.tableHeader}>CLEARANCE{'\n'}(in)</Text>
             </View>
             {rows.map((row, index) => {
               const od = Number(row[1]);
-              const slipId = Number.isFinite(od) ? (od + 0.02).toFixed(3) : '—';
+              const clearance = Number(slipClearances[index]);
+              const slipId =
+                Number.isFinite(od) && Number.isFinite(clearance)
+                  ? (od + clearance).toFixed(3)
+                  : '';
               return (
                 <View key={index} style={styles.tableRow}>
-                  <Text style={styles.tableCell}>{row[1]}</Text>
-                  <Text style={styles.tableCell}>{slipId}</Text>
-                  <Text style={styles.tableCell}>0.020</Text>
+                  <EditableCell value={row[1]} onChangeText={(value) => updateRow(index, 1, value)} />
+                  <EditableCell
+                    value={slipId}
+                    onChangeText={(value) => {
+                      const nextSlip = Number(value);
+                      const currentOd = Number(row[1]);
+                      if (Number.isFinite(nextSlip) && Number.isFinite(currentOd)) {
+                        updateClearance(index, (nextSlip - currentOd).toFixed(3));
+                      }
+                    }}
+                  />
+                  <EditableCell value={slipClearances[index] ?? ''} onChangeText={(value) => updateClearance(index, value)} />
                 </View>
               );
             })}
@@ -1421,6 +1497,14 @@ export default function App() {
     setOpenedSaved(null);
     setScreen('home');
   };
+  const backFromOpenedSaved = () => {
+    if (openedSaved) {
+      setOpenedSaved(null);
+      setScreen('saved');
+    } else {
+      goHome();
+    }
+  };
 
   useEffect(() => {
     AsyncStorage.getItem(SAVED_KEY)
@@ -1517,6 +1601,12 @@ export default function App() {
     );
   };
 
+  const updateSavedItemNotes = (itemId: string, notes: string) => {
+    setSavedItems((current) =>
+      current.map((item) => item.id === itemId ? { ...item, notes } : item)
+    );
+  };
+
   const deleteSaved = (item: SavedItem) => {
     setSavedItems((current) => current.filter((saved) => saved.id !== item.id));
     setProjects((current) =>
@@ -1580,7 +1670,7 @@ export default function App() {
     return (
       <SafeAreaView style={styles.safe}>
         <CircleScreen
-          onBack={goHome}
+          onBack={backFromOpenedSaved}
           initial={openedSaved?.kind === 'circle' ? openedSaved : null}
           isSaved={isSaved}
           onToggleSave={toggleSave}
@@ -1602,7 +1692,7 @@ export default function App() {
     return (
       <SafeAreaView style={styles.safe}>
         <TriangleScreen
-          onBack={goHome}
+          onBack={backFromOpenedSaved}
           initial={openedSaved?.kind === 'triangle' ? openedSaved : null}
           isSaved={isSaved}
           onToggleSave={toggleSave}
@@ -1632,7 +1722,7 @@ export default function App() {
     return (
       <SafeAreaView style={styles.safe}>
         <RodScreen
-          onBack={goHome}
+          onBack={backFromOpenedSaved}
           isSaved={isSaved}
           onToggleSave={toggleSave}
         />
@@ -1668,7 +1758,7 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <MetalDetailScreen
           index={selectedMetal}
-          onBack={() => setScreen('metal')}
+          onBack={() => openedSaved ? backFromOpenedSaved() : setScreen('metal')}
           isSaved={isSaved}
           onToggleSave={toggleSave}
         />
@@ -1704,7 +1794,7 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <ThicknessDetailScreen
           index={selectedThickness}
-          onBack={() => setScreen('thickness')}
+          onBack={() => openedSaved ? backFromOpenedSaved() : setScreen('thickness')}
           isSaved={isSaved}
           onToggleSave={toggleSave}
         />
@@ -1740,7 +1830,7 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <ConditionDetailScreen
           index={selectedCondition}
-          onBack={() => setScreen('condition')}
+          onBack={() => openedSaved ? backFromOpenedSaved() : setScreen('condition')}
           isSaved={isSaved}
           onToggleSave={toggleSave}
         />
@@ -1767,6 +1857,7 @@ export default function App() {
           onOpen={openSaved}
           onShare={shareSaved}
           onDelete={deleteSaved}
+          onNotesChange={updateSavedItemNotes}
           onOpenProject={(project) => {
             setSelectedProjectId(project.id);
             setScreen('project');
@@ -2160,6 +2251,17 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#363839',
   },
+  tableInput: {
+    flex: 1,
+    minHeight: 48,
+    color: TEXT,
+    fontSize: 15,
+    textAlign: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 5,
+    borderRightWidth: 1,
+    borderRightColor: '#363839',
+  },
   selectorBlock: {
     marginBottom: 14,
   },
@@ -2514,6 +2616,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     marginTop: 4,
+  },
+  savedItemNotesInput: {
+    minHeight: 64,
+    backgroundColor: PANEL_DARK,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: BORDER,
+    color: TEXT,
+    fontSize: 14,
+    lineHeight: 19,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    marginTop: 10,
+  },
+  savedDropdown: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+  },
+  savedDropdownRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 6,
+  },
+  savedDropdownLabel: {
+    width: 100,
+    color: MUTED,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  savedDropdownValue: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 13,
+    lineHeight: 18,
   },
   savedDelete: {
     width: 34,
