@@ -1584,16 +1584,52 @@ const migSteelC25: Record<string, Record<string, { voltage: string; wfs: string 
   },
 };
 
-const tigSteelParams: Record<string, string> = {
-  '24 ga': '20–32 A',
-  '22 ga': '20–36 A',
-  '20 ga': '26–46 A',
-  '18 ga': '36–60 A',
-  '16 ga': '47–73 A',
-  '14 ga': '62–88 A',
-  '1/8"': '110–140 A',
-  '3/16"': '125–150 A',
+const tigThicknessOptions = ['22 ga', '20 ga', '18 ga', '16 ga', '14 ga', '1/8"', '3/16"', '1/4"'] as const;
+
+const tigSteelParams: Record<string, Record<string, string>> = {
+  '1/16"': {
+    '22 ga': '35 A',
+    '20 ga': '40 A',
+    '18 ga': '45 A',
+    '16 ga': '55 A',
+    '14 ga': '70 A',
+    '1/8"': '120 A',
+  },
+  '3/32"': {
+    '22 ga': '35 A',
+    '20 ga': '40 A',
+    '18 ga': '45 A',
+    '16 ga': '55 A',
+    '14 ga': '70 A',
+    '1/8"': '120 A',
+    '3/16"': '150 A',
+    '1/4"': '190 A',
+  },
 };
+
+const tigAluminumParams: Record<string, Record<string, string>> = {
+  '1/16"': {
+    '22 ga': '30 A',
+    '20 ga': '55 A',
+    '18 ga': '65 A',
+    '16 ga': '95 A',
+    '14 ga': '105 A',
+    '1/8"': '135 A',
+  },
+  '3/32"': {
+    '22 ga': '30 A',
+    '20 ga': '55 A',
+    '18 ga': '65 A',
+    '16 ga': '95 A',
+    '14 ga': '105 A',
+    '1/8"': '135 A',
+    '3/16"': '185 A',
+    '1/4"': '210 A',
+  },
+};
+
+const acBalanceOptions = ['60% EN', '65% EN', '70% EN', '75% EN', '80% EN'] as const;
+const acFrequencyOptions = ['60 Hz', '80 Hz', '100 Hz', '120 Hz', '150 Hz'] as const;
 
 const stickAmps: Record<string, Record<string, string>> = {
   E6010: { '3/32"': '50–100 A', '1/8"': '75–125 A', '5/32"': '100–150 A', '3/16"': '150–200 A' },
@@ -1666,6 +1702,16 @@ function WeldSettingsScreen({
       ? String(initial.payload.tungsten ?? '3/32"')
       : '3/32"'
   );
+  const [tigBalance, setTigBalance] = useState(
+    initial?.kind === 'weldSettings' && initialProcess === 'TIG'
+      ? String(initial.payload.acBalance ?? '75% EN')
+      : '75% EN'
+  );
+  const [tigFrequency, setTigFrequency] = useState(
+    initial?.kind === 'weldSettings' && initialProcess === 'TIG'
+      ? String(initial.payload.acFrequency ?? '120 Hz')
+      : '120 Hz'
+  );
   const [stickElectrode, setStickElectrode] = useState(
     initial?.kind === 'weldSettings' && initialProcess === 'STICK'
       ? String(initial.payload.electrode ?? 'E7018')
@@ -1678,7 +1724,9 @@ function WeldSettingsScreen({
   );
 
   const migSetting = migSteelC25[migWire]?.[migThickness] ?? migSteelC25['.030"']['1/8"'];
-  const tigAmps = tigSteelParams[tigThickness] ?? '110–140 A';
+  const tigIsAluminum = tigMaterial === 'Aluminum';
+  const tigTable = tigIsAluminum ? tigAluminumParams : tigSteelParams;
+  const tigAmps = tigTable[tigTungsten]?.[tigThickness] ?? 'Use 3/32" tungsten or verify machine chart';
   const stickAmp = stickAmps[stickElectrode]?.[stickDiameter] ?? 'See electrode data';
   const stick = stickInfo[stickElectrode] ?? stickInfo.E7018;
 
@@ -1704,15 +1752,18 @@ function WeldSettingsScreen({
         ? makeSavedItem(
             'weldSettings',
             'TIG • ' + tigMaterial + ' • ' + tigThickness,
-            tigAmps + ' • ' + tigTungsten + ' tungsten',
+            tigIsAluminum
+              ? tigAmps + ' • ' + tigBalance + ' • ' + tigFrequency
+              : tigAmps + ' • ' + tigTungsten + ' tungsten',
             {
               process: 'TIG',
               material: tigMaterial,
               thickness: tigThickness,
               tungsten: tigTungsten,
               amperage: tigAmps,
-              polarity: 'DCEN',
-              gas: 'Argon, 20–30 CFH (table starting point)',
+              polarity: tigIsAluminum ? 'AC' : 'DCEN',
+              gas: 'Argon, 15–20 CFH starting point',
+              ...(tigIsAluminum ? { acBalance: tigBalance, acFrequency: tigFrequency } : {}),
             }
           )
         : makeSavedItem(
@@ -1765,21 +1816,46 @@ function WeldSettingsScreen({
             ) : process === 'TIG' ? (
               <>
                 <View style={styles.weldGuideIntro}>
-                  <Text style={styles.weldGuideIntroTitle}>TIG · STEEL / STAINLESS / CHROMOLY</Text>
+                  <Text style={styles.weldGuideIntroTitle}>
+                    {tigIsAluminum ? 'TIG · ALUMINUM / AC' : 'TIG · STEEL / STAINLESS / CHROMOLY'}
+                  </Text>
                   <Text style={styles.weldGuideIntroText}>
-                    Miller published DC TIG starting ranges. Aluminum uses AC and requires a different parameter set.
+                    {tigIsAluminum
+                      ? 'Miller aluminum TIG starting parameters. AC balance is shown as % electrode negative (%EN).'
+                      : 'Miller published DC TIG starting parameters for steel and stainless-family applications.'}
                   </Text>
                 </View>
-                <SelectorRow label="MATERIAL" value={tigMaterial} options={['Steel', 'Stainless Steel', 'Chromoly']} onChange={setTigMaterial} />
-                <SelectorRow label="MATERIAL THICKNESS" value={tigThickness} options={weldThicknessOptions} onChange={setTigThickness} />
+                <SelectorRow
+                  label="MATERIAL"
+                  value={tigMaterial}
+                  options={['Steel', 'Stainless Steel', 'Chromoly', 'Aluminum']}
+                  onChange={setTigMaterial}
+                />
+                <SelectorRow label="MATERIAL THICKNESS" value={tigThickness} options={tigThicknessOptions} onChange={setTigThickness} />
                 <SelectorRow label="TUNGSTEN DIAMETER" value={tigTungsten} options={['1/16"', '3/32"']} onChange={setTigTungsten} />
+                {tigIsAluminum ? (
+                  <>
+                    <SelectorRow label="AC BALANCE · % ELECTRODE NEGATIVE" value={tigBalance} options={acBalanceOptions} onChange={setTigBalance} />
+                    <SelectorRow label="AC FREQUENCY" value={tigFrequency} options={acFrequencyOptions} onChange={setTigFrequency} />
+                  </>
+                ) : null}
                 <View style={styles.infoCard}>
                   <InfoLine label="Amperage" value={tigAmps} />
-                  <InfoLine label="Polarity" value="DCEN" />
+                  <InfoLine label="Current / Polarity" value={tigIsAluminum ? 'AC' : 'DCEN'} />
+                  {tigIsAluminum ? <InfoLine label="AC Balance" value={tigBalance} /> : null}
+                  {tigIsAluminum ? <InfoLine label="AC Frequency" value={tigFrequency} /> : null}
                   <InfoLine label="Shielding Gas" value="Argon" />
-                  <InfoLine label="Gas Flow" value="20–30 CFH" />
+                  <InfoLine label="Gas Flow" value="15–20 CFH" />
                   <InfoLine label="Tungsten" value={tigTungsten} />
                 </View>
+                {tigIsAluminum ? (
+                  <View style={styles.weldGuideCard}>
+                    <Text style={styles.weldGuideTitle}>ALUMINUM AC STARTING POINT</Text>
+                    <Text style={styles.weldGuideBody}>
+                      75% EN and 120 Hz are Miller Pro-Set starting values on the Multimatic 220 AC/DC. Lower %EN increases oxide-cleaning action; higher %EN reduces cleaning and puts more heat into the work. Higher AC frequency narrows and focuses the arc; lower frequency broadens it. Other machines may label AC balance differently, so confirm the machine convention.
+                    </Text>
+                  </View>
+                ) : null}
               </>
             ) : (
               <>
@@ -1849,15 +1925,29 @@ function WeldSettingsScreen({
                   <Text style={styles.weldGuideTitle}>TIG QUICK REFERENCE</Text>
                   <Text style={styles.weldGuideBody}>Steel, stainless, and chromoly: DCEN with argon. Aluminum: AC. Keep the tungsten and filler clean and use the machine/WPS guidance for the exact alloy and joint.</Text>
                 </View>
-                {weldThicknessOptions.map((thickness) => (
-                  <View key={thickness} style={styles.weldReferenceRow}>
+                <Text style={styles.weldSectionTitle}>STEEL / STAINLESS · 3/32" TUNGSTEN</Text>
+                {tigThicknessOptions.map((thickness) => (
+                  <View key={'steel-' + thickness} style={styles.weldReferenceRow}>
                     <Text style={styles.weldReferenceKey}>{thickness}</Text>
-                    <Text style={styles.weldReferenceValue}>{tigSteelParams[thickness]}</Text>
+                    <Text style={styles.weldReferenceValue}>{tigSteelParams['3/32"'][thickness] ?? '—'}</Text>
+                  </View>
+                ))}
+                <Text style={styles.weldSectionTitle}>ALUMINUM · AC · 3/32" TUNGSTEN</Text>
+                {tigThicknessOptions.map((thickness) => (
+                  <View key={'aluminum-' + thickness} style={styles.weldReferenceRow}>
+                    <Text style={styles.weldReferenceKey}>{thickness}</Text>
+                    <Text style={styles.weldReferenceValue}>{tigAluminumParams['3/32"'][thickness] ?? '—'}</Text>
                   </View>
                 ))}
                 <View style={styles.weldGuideCard}>
+                  <Text style={styles.weldGuideTitle}>ALUMINUM AC BALANCE / FREQUENCY</Text>
+                  <Text style={styles.weldGuideBody}>
+                    Miller Multimatic 220 AC/DC manual range: 60–80% EN balance and 60–150 Hz AC frequency. Pro-Set starts at 75% EN and 120 Hz. More EN means less cleaning; less EN means more EP cleaning. Increasing frequency focuses and narrows the arc.
+                  </Text>
+                </View>
+                <View style={styles.weldGuideCard}>
                   <Text style={styles.weldGuideTitle}>TUNGSTEN / GAS</Text>
-                  <Text style={styles.weldGuideBody}>The Miller table uses 1/16 or 3/32 in tungsten with argon. General TIG guidance commonly uses 3/32 in tungsten for a broad working range; match tungsten size to current and machine instructions.</Text>
+                  <Text style={styles.weldGuideBody}>The Miller table uses 1/16 or 3/32 in tungsten with argon. Match tungsten size to current and machine instructions. A 15–20 CFH argon flow is a common Miller troubleshooting starting range for AC TIG.</Text>
                 </View>
               </>
             ) : (
