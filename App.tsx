@@ -176,7 +176,7 @@ const metals = [
     name: 'Mild Steel',
     spriteY: 225,
     image: wikiImage('Mild steel sheet metal close up.jpg'),
-    description: 'Low-carbon steel with a dull gray surface. One of the most common fabrication and structural welding materials.',
+    description: 'Usually dull gray and magnetic; unfinished surfaces often show dark mill scale and can develop reddish-brown rust.',
     welding: 'Commonly welded with SMAW, MIG, TIG, and flux-core processes.',
     note: 'Remove mill scale, oil, paint, and heavy rust where practical before welding.',
   },
@@ -184,7 +184,7 @@ const metals = [
     name: 'Stainless Steel',
     spriteY: 270,
     image: wikiImage('Dark grey stainless steel heavily scratched worn seamless metal surface texture.jpg'),
-    description: 'Corrosion-resistant steel containing chromium. Surface appearance can range from bright to brushed or matte.',
+    description: 'Usually silver-gray, often brighter or more uniform than mild steel. Many grades resist red rust; magnet response varies by grade.',
     welding: 'Use a filler compatible with the stainless grade and control heat input.',
     note: 'Keep stainless tools and abrasives separate from carbon-steel tools to reduce contamination.',
   },
@@ -192,7 +192,7 @@ const metals = [
     name: 'Aluminum',
     spriteY: 0,
     image: wikiImage('Aluminiumblech.JPG'),
-    description: 'Lightweight nonferrous metal with a silver-gray oxide layer that reforms quickly after cleaning.',
+    description: 'Lightweight, silver-gray, and nonmagnetic. Usually lacks red rust and may develop a dull white-gray oxide.',
     welding: 'Typically welded with MIG or AC TIG using aluminum-compatible filler.',
     note: 'Remove oxide and contamination immediately before welding for best results.',
   },
@@ -200,7 +200,7 @@ const metals = [
     name: 'Cast Iron',
     spriteY: 45,
     image: wikiImage('Grey textured cast finish clean rough seamless metal sheet surface texture.jpg'),
-    description: 'High-carbon iron alloy commonly found in cast housings, machinery, cookware, and older components.',
+    description: 'Usually dark gray with a rough cast surface. Often identified by its cast shape, weight, and brittle behavior rather than appearance alone.',
     welding: 'Repair welding often uses nickel-based filler and controlled preheat/cooling procedures.',
     note: 'Identify the casting and repair requirements before welding; cracking risk can be significant.',
   },
@@ -208,7 +208,7 @@ const metals = [
     name: 'Galvanized',
     spriteY: 180,
     image: wikiImage('Grey galvanized smooth clean steel metal sheet seamless surface texture.jpg'),
-    description: 'Steel coated with zinc. Hot-dip galvanized surfaces often show a crystalline spangle pattern.',
+    description: 'Steel with a zinc coating, often bright gray or showing a mottled crystalline spangle. A magnet generally attracts the steel underneath.',
     welding: 'The zinc coating should be removed from the weld area where practical.',
     note: 'Use effective ventilation/fume controls when welding galvanized material.',
   },
@@ -216,7 +216,7 @@ const metals = [
     name: 'Chromoly',
     spriteY: 90,
     image: 'https://cdn.shopify.com/s/files/1/0610/7699/6235/files/Chromoly-Plates-Guage2.jpg?v=1761321484',
-    description: 'Chromium-molybdenum alloy steel used for high-strength tubing, frames, motorsport parts, and fabrication.',
+    description: 'Often looks much like ordinary steel and is usually magnetic. Visual inspection alone cannot reliably distinguish chromoly from mild steel.',
     welding: 'Filler and heat treatment depend on the exact alloy, thickness, and service requirement.',
     note: 'Do not assume every Cr-Mo alloy can use the same procedure; verify the material grade.',
   },
@@ -224,7 +224,7 @@ const metals = [
     name: 'Copper',
     spriteY: 135,
     image: wikiImage('Copper sheet 100x.jpg'),
-    description: 'Highly conductive nonferrous metal with a reddish-orange appearance when clean.',
+    description: 'Distinct reddish-orange metal when clean; oxidized copper can turn brown, dark, or green.',
     welding: 'High thermal conductivity usually requires more heat input than similarly sized steel.',
     note: 'Use a process and filler intended for the specific copper alloy.',
   },
@@ -232,7 +232,7 @@ const metals = [
     name: 'Brass',
     spriteY: 0,
     image: wikiImage('Brass photoetch sheet.jpg'),
-    description: 'Copper-zinc alloy used in fittings, hardware, decorative fabrication, and repair work.',
+    description: 'Typically yellow-gold and nonmagnetic. Tarnish can darken the surface and make visual identification less certain.',
     welding: 'Often joined by TIG, brazing, or braze-welding depending on alloy and application.',
     note: 'Zinc can vaporize when heated. Use appropriate fume controls and verify the alloy before joining.',
   },
@@ -240,7 +240,7 @@ const metals = [
     name: 'Bronze',
     spriteY: 0,
     image: wikiImage('Sculpture bronze texture.jpg'),
-    description: 'Family of copper-based alloys commonly containing tin, silicon, aluminum, or other alloying elements.',
+    description: 'Usually brown, reddish-brown, or gold-toned and nonmagnetic. Color varies substantially by alloy.',
     welding: 'Joining method and filler depend on the exact bronze alloy; TIG and brazing processes are common.',
     note: 'Identify the bronze alloy before selecting filler or welding parameters.',
   },
@@ -248,7 +248,7 @@ const metals = [
     name: 'Nickel Alloys',
     spriteY: 0,
     image: wikiImage('Nickel (Element - 28).jpg'),
-    description: 'Nickel-based alloys are used where corrosion resistance, strength, or high-temperature performance is required.',
+    description: 'Typically silver-gray and can resemble stainless steel. Appearance and magnet response are not reliable enough for positive alloy identification.',
     welding: 'Commonly welded with GTAW, GMAW, or SMAW using filler matched to the specific nickel alloy.',
     note: 'Cleanliness and correct alloy identification are important; follow the applicable welding procedure.',
   },
@@ -256,7 +256,7 @@ const metals = [
     name: 'Titanium',
     spriteY: 0,
     image: wikiImage('Titanium sheet from powder (9067742593).jpg'),
-    description: 'Light, strong, corrosion-resistant metal used in aerospace, motorsport, chemical, and high-performance fabrication.',
+    description: 'Silver-gray, lightweight, and corrosion resistant. It can resemble stainless steel or aluminum, so visual identification alone is unreliable.',
     welding: 'Typically GTAW welded with very clean material and extensive inert-gas shielding.',
     note: 'Hot titanium reacts readily with air. Maintain shielding until the weld and heat-affected zone have cooled sufficiently.',
   },
@@ -264,7 +264,7 @@ const metals = [
     name: 'Magnesium',
     spriteY: 0,
     image: wikiImage('CSIRO ScienceImage 937 Coiled magnesium sheets and magnesium ingots.jpg'),
-    description: 'Very lightweight structural metal used in castings, transportation components, and specialty fabrication.',
+    description: 'Very lightweight and silver-gray. It can resemble aluminum; positive identification should not rely on appearance alone.',
     welding: 'Many magnesium alloys can be GTAW or GMAW welded with alloy-compatible filler and careful cleaning.',
     note: 'Magnesium chips, dust, and fine material present a serious fire hazard. Use procedures appropriate to the alloy and form.',
   },
@@ -272,7 +272,7 @@ const metals = [
     name: 'Copper-Nickel',
     spriteY: 0,
     image: wikiImage('10 francs Turin en argent 1930 et cupronickel 1949.jpg'),
-    description: 'Copper-nickel alloy valued for seawater corrosion resistance and widely used in marine piping and heat exchangers.',
+    description: 'Usually silvery to slightly copper-toned and nonmagnetic. It can resemble other corrosion-resistant alloys, so verify the grade when it matters.',
     welding: 'Commonly GTAW or GMAW welded using filler selected for the specific Cu-Ni grade.',
     note: 'Keep the joint clean and verify the base alloy and service requirements before selecting filler.',
   },
@@ -312,42 +312,42 @@ const conditions = [
   {
     name: 'Clean',
     spriteY: 0,
-    desc: 'Bare metal, no rust or coating.',
+    desc: 'No visible reddish-brown oxidation; surface is bare metal.',
     image: wikiImage('Metal steel surface.jpg'),
     prep: 'Remove oil, moisture, dirt, and loose scale. Bright clean metal gives the most predictable arc and weld quality.',
   },
   {
     name: 'Light Rust',
     spriteY: 162,
-    desc: 'Surface rust, still solid.',
+    desc: 'Thin reddish-brown surface oxidation with little or no visible pitting.',
     image: wikiImage('Rusty metal sheet (Amal Kumar via Poly Haven).png'),
     prep: 'Wire-brush or grind the weld zone to remove loose oxidation. Confirm the base metal is still sound.',
   },
   {
     name: 'Moderate Rust',
     spriteY: 216,
-    desc: 'Visible rust and scale.',
+    desc: 'Broader rust coverage with visible scale or pitting; clean the area to assess remaining metal.',
     image: wikiImage('Rust texture 3.jpg'),
     prep: 'Mechanically remove rust and scale around the joint. Recheck remaining thickness before welding.',
   },
   {
     name: 'Heavy Rust',
     spriteY: 108,
-    desc: 'Thick rust, pitting, or material loss.',
+    desc: 'Heavy scale, deep pitting, flaking, or obvious section loss; assess sound metal before repair.',
     image: wikiImage('Rust texture.jpg'),
     prep: 'Do not weld over heavy corrosion. Clean to sound metal and verify that enough base material remains for a safe repair.',
   },
   {
     name: 'Painted',
     spriteY: 270,
-    desc: 'Paint or coating over the base metal.',
+    desc: 'Coating hides the base surface; remove it at the weld area to inspect the metal underneath.',
     image: wikiImage('White painted slightly worn scratched chipped steel metal surface seamless texture.jpg'),
     prep: 'Remove paint from the weld zone and nearby heat-affected area. Unknown coatings can create hazardous fumes.',
   },
   {
     name: 'Galvanized',
     spriteY: 54,
-    desc: 'Zinc-coated steel.',
+    desc: 'Gray zinc-coated steel, often with a mottled or spangled surface rather than red rust.',
     image: wikiImage('Galvanized surface.jpg'),
     prep: 'Remove zinc from the immediate weld zone where practical and use effective ventilation/fume controls.',
   },
@@ -2114,8 +2114,10 @@ function MetalScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
           >
-            <Image source={{ uri: metal.image }} style={styles.referencePhoto} resizeMode="cover" />
-            <Text style={styles.referenceTitle}>{metal.name}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.referenceTitle}>{metal.name}</Text>
+              <Text style={styles.referenceSub}>{metal.description}</Text>
+            </View>
             <Ionicons name="chevron-forward" size={22} color={TEXT} />
           </Pressable>
         ))}
@@ -2208,7 +2210,6 @@ function ConditionScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.conditionRow, pressed && styles.pressed]}
           >
-            <Image source={{ uri: condition.image }} style={styles.conditionPhoto} resizeMode="cover" />
             <View style={{ flex: 1 }}>
               <Text style={styles.referenceTitle}>{condition.name}</Text>
               <Text style={styles.referenceSub}>{condition.desc}</Text>
@@ -2243,7 +2244,6 @@ function MetalDetailScreen({
     <>
       <Header title={metal.name.toUpperCase()} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Image source={{ uri: metal.image }} style={styles.detailPhoto} resizeMode="cover" />
         <Text style={styles.detailTitle}>{metal.name}</Text>
         <Text style={styles.detailBody}>{metal.description}</Text>
         <View style={styles.infoCard}>
@@ -2254,7 +2254,7 @@ function MetalDetailScreen({
           saved={isSaved(savedItem)}
           onPress={() => onToggleSave(savedItem)}
         />
-        <Text style={styles.photoSource}>Reference photo: Wikimedia Commons</Text>
+
       </ScrollView>
     </>
   );
@@ -2335,7 +2335,6 @@ function ConditionDetailScreen({
     <>
       <Header title={condition.name.toUpperCase()} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Image source={{ uri: condition.image }} style={styles.detailPhoto} resizeMode="cover" />
         <Text style={styles.detailTitle}>{condition.name}</Text>
         <Text style={styles.detailBody}>{condition.desc}</Text>
         <View style={styles.infoCard}>
