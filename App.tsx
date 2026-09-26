@@ -697,20 +697,56 @@ function PipeScreen({ onBack }: { onBack: () => void }) {
           onChange={setTab}
         />
 
-        <View style={styles.table}>
-          <View style={[styles.tableRow, styles.tableHeaderRow]}>
-            <Text style={styles.tableHeader}>NB{'\\n'}(in)</Text>
-            <Text style={styles.tableHeader}>OD{'\\n'}(in)</Text>
-            <Text style={styles.tableHeader}>Schedule 40{'\\n'}ID (in)</Text>
-          </View>
-          {rows.map((row, index) => (
-            <View key={index} style={styles.tableRow}>
-              <Text style={styles.tableCell}>{row[0]}</Text>
-              <Text style={styles.tableCell}>{row[1]}</Text>
-              <Text style={styles.tableCell}>{row[2]}</Text>
+        {tab === 0 ? (
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeaderRow]}>
+              <Text style={styles.tableHeader}>NB{'\\n'}(in)</Text>
+              <Text style={styles.tableHeader}>OD{'\\n'}(in)</Text>
+              <Text style={styles.tableHeader}>Schedule 40{'\\n'}ID (in)</Text>
             </View>
-          ))}
-        </View>
+            {rows.map((row, index) => (
+              <View key={index} style={styles.tableRow}>
+                <Text style={styles.tableCell}>{row[0]}</Text>
+                <Text style={styles.tableCell}>{row[1]}</Text>
+                <Text style={styles.tableCell}>{row[2]}</Text>
+              </View>
+            ))}
+          </View>
+        ) : tab === 1 ? (
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeaderRow]}>
+              <Text style={styles.tableHeader}>NB{'\\n'}(in)</Text>
+              <Text style={styles.tableHeader}>OD{'\\n'}(in)</Text>
+              <Text style={styles.tableHeader}>ID{'\\n'}(in)</Text>
+            </View>
+            {rows.map((row, index) => (
+              <View key={index} style={styles.tableRow}>
+                <Text style={styles.tableCell}>{row[0]}</Text>
+                <Text style={styles.tableCell}>{row[1]}</Text>
+                <Text style={styles.tableCell}>{row[2]}</Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeaderRow]}>
+              <Text style={styles.tableHeader}>PIPE OD{'\\n'}(in)</Text>
+              <Text style={styles.tableHeader}>SLIP OVER ID{'\\n'}(in)</Text>
+              <Text style={styles.tableHeader}>CLEARANCE{'\\n'}(in)</Text>
+            </View>
+            {rows.map((row, index) => {
+              const od = Number(row[1]);
+              const slipId = Number.isFinite(od) ? (od + 0.02).toFixed(3) : '—';
+              return (
+                <View key={index} style={styles.tableRow}>
+                  <Text style={styles.tableCell}>{row[1]}</Text>
+                  <Text style={styles.tableCell}>{slipId}</Text>
+                  <Text style={styles.tableCell}>0.020</Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
     </>
   );
