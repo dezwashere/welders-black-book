@@ -856,75 +856,99 @@ function CircleScreen({
   const [unit, setUnit] = useState<'in' | 'mm'>(
     initial?.kind === 'circle' && initial.payload.unit === 'mm' ? 'mm' : 'in'
   );
+
   const changeUnit = (next: 'in' | 'mm') => {
     if (next === unit) return;
     const n = parseFloat(value);
     if (isFinite(n)) setValue((next === 'mm' ? n * 25.4 : n / 25.4).toFixed(next === 'mm' ? 1 : 3));
     setUnit(next);
   };
+
   const result = useMemo(() => {
     const n = parseFloat(value);
-    if (!isFinite(n)) return '';
-    return mode === 0 ? (Math.PI * n).toFixed(2) : (n / Math.PI).toFixed(2);
-  }, [mode, value]);
+    if (!isFinite(n) || n <= 0) return '';
+    return (mode === 0 ? Math.PI * n : n / Math.PI).toFixed(unit === 'mm' ? 2 : 3);
+  }, [mode, value, unit]);
+
+  const radius = useMemo(() => {
+    const diameter = mode === 0 ? parseFloat(value) : parseFloat(result);
+    return isFinite(diameter) && diameter > 0 ? (diameter / 2).toFixed(unit === 'mm' ? 2 : 3) : '';
+  }, [mode, value, result, unit]);
 
   const savedItem = makeSavedItem(
     'circle',
-    mode === 0 ? `Circle • Ø ${value || '—'} ${unit}` : `Circle • C ${value || '—'} ${unit}`,
+    mode === 0 ? `Circle • OD ${value || '—'} ${unit}` : `Circle • Wrap ${value || '—'} ${unit}`,
     result
       ? mode === 0
-        ? `Circumference ${result} ${unit}`
-        : `Diameter ${result} ${unit}`
-      : 'Circle measurement',
-    { mode, input: value, result, unit }
+        ? `Wrap length ${result} ${unit} · Radius ${radius} ${unit}`
+        : `Outside diameter ${result} ${unit} · Radius ${radius} ${unit}`
+      : 'Circle / pipe layout',
+    { mode, input: value, result, radius, unit }
   );
 
   return (
     <>
-      <Header title="CIRCLE CALCULATOR" onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <Header title="CIRCLE / PIPE LAYOUT" onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.circleTop}>
           <View style={styles.circleDrawing}>
             <View style={styles.circleLine} />
-            <Text style={styles.circleD}>D</Text>
+            <Text style={styles.circleD}>OD</Text>
           </View>
-          <Text style={styles.formulaText}>C = π × D{"\n"}C = π × 2r{"\n"}π = 3.1416</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.formulaText}>WRAP = π × OD</Text>
+            <Text style={styles.referenceSub}>Use the actual outside diameter, not the nominal pipe size.</Text>
+          </View>
         </View>
 
-        <Segment
-          labels={['Diameter → Circumference', 'Circumference → Diameter']}
-          active={mode}
-          onChange={setMode}
-        />
         <View style={styles.pipeRegionSwitch}>
           <Pressable onPress={() => changeUnit('in')} style={[styles.pipeRegionButton, unit === 'in' && styles.pipeRegionButtonActive]}>
             <Text style={[styles.pipeRegionText, unit === 'in' && styles.pipeRegionTextActive]}>US / INCH</Text>
+            <Text style={[styles.pipeRegionSub, unit === 'in' && styles.pipeRegionTextActive]}>inches</Text>
           </Pressable>
           <Pressable onPress={() => changeUnit('mm')} style={[styles.pipeRegionButton, unit === 'mm' && styles.pipeRegionButtonActive]}>
             <Text style={[styles.pipeRegionText, unit === 'mm' && styles.pipeRegionTextActive]}>METRIC / MM</Text>
+            <Text style={[styles.pipeRegionSub, unit === 'mm' && styles.pipeRegionTextActive]}>millimetres</Text>
           </Pressable>
         </View>
 
-        <Field
-          label={mode === 0 ? `Diameter (${unit})` : `Circumference (${unit})`}
-          value={value}
-          setValue={setValue}
-        />
+        {mode === 0 ? (
+          <>
+            <Text style={styles.pipeReferenceNote}>WHAT IS THE ACTUAL OUTSIDE DIAMETER?</Text>
+            <Field label={`Outside Diameter (OD) · ${unit}`} value={value} setValue={setValue} />
+            <View style={styles.resultCard}>
+              <Text style={styles.resultTitle}>Circumference / Wrap Length</Text>
+              <Text style={styles.resultBig}>{result || '—'} <Text style={styles.resultUnit}>{unit}</Text></Text>
+              <Text style={styles.referenceSub}>Distance around the outside of the pipe or round workpiece.</Text>
+            </View>
+            <View style={styles.infoCard}>
+              <InfoLine label="Radius" value={radius ? `${radius} ${unit}` : '—'} />
+              <InfoLine label="Quarter point" value={result ? `${(Number(result) / 4).toFixed(unit === 'mm' ? 2 : 3)} ${unit}` : '—'} />
+              <InfoLine label="Half wrap" value={result ? `${(Number(result) / 2).toFixed(unit === 'mm' ? 2 : 3)} ${unit}` : '—'} />
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.pipeReferenceNote}>MEASURED AROUND THE PIPE?</Text>
+            <Field label={`Measured Circumference · ${unit}`} value={value} setValue={setValue} />
+            <View style={styles.resultCard}>
+              <Text style={styles.resultTitle}>Outside Diameter (OD)</Text>
+              <Text style={styles.resultBig}>{result || '—'} <Text style={styles.resultUnit}>{unit}</Text></Text>
+              <Text style={styles.referenceSub}>Calculated from your wrap-around measurement.</Text>
+            </View>
+            <View style={styles.infoCard}>
+              <InfoLine label="Radius" value={radius ? `${radius} ${unit}` : '—'} />
+            </View>
+          </>
+        )}
 
-        <View style={styles.resultCard}>
-          <Text style={styles.resultTitle}>
-            {mode === 0 ? 'Circumference' : 'Diameter'}
+        <Pressable onPress={() => setMode(mode === 0 ? 1 : 0)} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>
+            {mode === 0 ? 'I measured around the pipe instead' : 'I know the outside diameter instead'}
           </Text>
-          <Text style={styles.resultBig}>
-            {result || '—'} <Text style={styles.resultUnit}>{unit}</Text>
-          </Text>
-        </View>
+        </Pressable>
 
-        <SaveButton
-          saved={isSaved(savedItem)}
-          editing={Boolean(initial)}
-          onPress={() => onToggleSave(savedItem)}
-        />
+        <SaveButton saved={isSaved(savedItem)} editing={Boolean(initial)} onPress={() => onToggleSave(savedItem)} />
 
         <Pressable onPress={() => setValue('')} style={styles.secondaryButton}>
           <Text style={styles.secondaryButtonText}>Clear</Text>
