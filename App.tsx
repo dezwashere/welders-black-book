@@ -103,14 +103,14 @@ const wikiImage = (file: string) =>
 const metals = [
   {
     name: 'Mild Steel',
-    image: wikiImage('Metal steel surface.jpg'),
+    image: wikiImage('Mild steel sheet metal close up.jpg'),
     description: 'Low-carbon steel with a dull gray surface. One of the most common fabrication and structural welding materials.',
     welding: 'Commonly welded with SMAW, MIG, TIG, and flux-core processes.',
     note: 'Remove mill scale, oil, paint, and heavy rust where practical before welding.',
   },
   {
     name: 'Stainless Steel',
-    image: wikiImage('Stainless-steel-304-austenite-fracture.jpeg'),
+    image: wikiImage('Dark grey stainless steel heavily scratched worn seamless metal surface texture.jpg'),
     description: 'Corrosion-resistant steel containing chromium. Surface appearance can range from bright to brushed or matte.',
     welding: 'Use a filler compatible with the stainless grade and control heat input.',
     note: 'Keep stainless tools and abrasives separate from carbon-steel tools to reduce contamination.',
@@ -124,28 +124,28 @@ const metals = [
   },
   {
     name: 'Cast Iron',
-    image: wikiImage('Castingiron.jpg'),
+    image: wikiImage('Cast iron sample.jpg'),
     description: 'High-carbon iron alloy commonly found in cast housings, machinery, cookware, and older components.',
     welding: 'Repair welding often uses nickel-based filler and controlled preheat/cooling procedures.',
     note: 'Identify the casting and repair requirements before welding; cracking risk can be significant.',
   },
   {
     name: 'Galvanized',
-    image: wikiImage('Galvanized surface.jpg'),
+    image: wikiImage('Grey galvanized smooth clean steel metal sheet seamless surface texture.jpg'),
     description: 'Steel coated with zinc. Hot-dip galvanized surfaces often show a crystalline spangle pattern.',
     welding: 'The zinc coating should be removed from the weld area where practical.',
     note: 'Use effective ventilation/fume controls when welding galvanized material.',
   },
   {
     name: 'Chromoly',
-    image: wikiImage('Integra GSR Flywheel.jpg'),
+    image: 'https://cdn.shopify.com/s/files/1/0610/7699/6235/files/Chromoly-Plates-Guage2.jpg?v=1761321484',
     description: 'Chromium-molybdenum alloy steel used for high-strength tubing, frames, motorsport parts, and fabrication.',
     welding: 'Filler and heat treatment depend on the exact alloy, thickness, and service requirement.',
     note: 'Do not assume every Cr-Mo alloy can use the same procedure; verify the material grade.',
   },
   {
     name: 'Copper',
-    image: wikiImage('Copper sheet 50x.jpg'),
+    image: wikiImage('Copper sheet 100x.jpg'),
     description: 'Highly conductive nonferrous metal with a reddish-orange appearance when clean.',
     welding: 'High thermal conductivity usually requires more heat input than similarly sized steel.',
     note: 'Use a process and filler intended for the specific copper alloy.',
@@ -175,25 +175,25 @@ const conditions = [
   {
     name: 'Light Rust',
     desc: 'Surface rust, still solid.',
-    image: wikiImage('RR79.40.7A No. 1670 Closeup Rust 1.JPG'),
+    image: wikiImage('Free Texture Rusty Metal (22819581).jpeg'),
     prep: 'Wire-brush or grind the weld zone to remove loose oxidation. Confirm the base metal is still sound.',
   },
   {
     name: 'Moderate Rust',
     desc: 'Visible rust and scale.',
-    image: wikiImage('Closeup Rust (29221463032).jpg'),
+    image: wikiImage('Free Texture Rusty Metal (22819583).jpeg'),
     prep: 'Mechanically remove rust and scale around the joint. Recheck remaining thickness before welding.',
   },
   {
     name: 'Heavy Rust',
     desc: 'Thick rust, pitting, or material loss.',
-    image: wikiImage('Rust Closeup (14449459925).jpg'),
+    image: wikiImage('Orange Rusted Metal Texture (6648763107).jpg'),
     prep: 'Do not weld over heavy corrosion. Clean to sound metal and verify that enough base material remains for a safe repair.',
   },
   {
     name: 'Painted',
     desc: 'Paint or coating over the base metal.',
-    image: wikiImage('Rusting Metal DTXR-ML-2.jpg'),
+    image: wikiImage('White painted slightly worn scratched chipped steel metal surface seamless texture.jpg'),
     prep: 'Remove paint from the weld zone and nearby heat-affected area. Unknown coatings can create hazardous fumes.',
   },
   {
@@ -238,13 +238,13 @@ function HomeButton({
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.homeButton, pressed && styles.pressed]}>
       <View style={styles.homeIconBox}>
-        <Ionicons name={icon} size={34} color={iconColor} />
+        <Ionicons name={icon} size={40} color={iconColor} />
       </View>
       <View style={styles.homeButtonTextWrap}>
         <Text style={styles.homeButtonTitle}>{title}</Text>
         {subtitle ? <Text style={styles.homeButtonSubtitle}>{subtitle}</Text> : null}
       </View>
-      <Ionicons name="chevron-forward" size={26} color={TEXT} />
+      <Ionicons name="chevron-forward" size={26} color={BLACK} />
     </Pressable>
   );
 }
@@ -709,7 +709,7 @@ function MetalScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
           >
-            <Image source={{ uri: metal.image }} style={styles.referencePhoto} />
+            <Image source={{ uri: metal.image }} style={styles.referencePhoto} resizeMode="cover" />
             <Text style={styles.referenceTitle}>{metal.name}</Text>
             <Ionicons name="chevron-forward" size={22} color={TEXT} />
           </Pressable>
@@ -773,7 +773,7 @@ function ConditionScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.conditionRow, pressed && styles.pressed]}
           >
-            <Image source={{ uri: condition.image }} style={styles.conditionPhoto} />
+            <Image source={{ uri: condition.image }} style={styles.conditionPhoto} resizeMode="cover" />
             <View style={{ flex: 1 }}>
               <Text style={styles.referenceTitle}>{condition.name}</Text>
               <Text style={styles.referenceSub}>{condition.desc}</Text>
@@ -808,7 +808,7 @@ function MetalDetailScreen({
     <>
       <Header title={metal.name.toUpperCase()} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Image source={{ uri: metal.image }} style={styles.detailPhoto} />
+        <Image source={{ uri: metal.image }} style={styles.detailPhoto} resizeMode="cover" />
         <Text style={styles.detailTitle}>{metal.name}</Text>
         <Text style={styles.detailBody}>{metal.description}</Text>
         <View style={styles.infoCard}>
@@ -898,7 +898,7 @@ function ConditionDetailScreen({
     <>
       <Header title={condition.name.toUpperCase()} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Image source={{ uri: condition.image }} style={styles.detailPhoto} />
+        <Image source={{ uri: condition.image }} style={styles.detailPhoto} resizeMode="cover" />
         <Text style={styles.detailTitle}>{condition.name}</Text>
         <Text style={styles.detailBody}>{condition.desc}</Text>
         <View style={styles.infoCard}>
@@ -1257,20 +1257,20 @@ const styles = StyleSheet.create({
   },
   homeButton: {
     minHeight: 74,
-    backgroundColor: '#343638',
+    backgroundColor: YELLOW,
     borderRadius: 10,
     marginBottom: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#4a4d4f',
+    borderColor: YELLOW_DARK,
   },
   pressed: {
     opacity: 0.82,
   },
   homeIconBox: {
-    width: 56,
+    width: 62,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1279,13 +1279,13 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   homeButtonTitle: {
-    color: TEXT,
+    color: BLACK,
     fontSize: 18,
     lineHeight: 20,
     fontWeight: '900',
   },
   homeButtonSubtitle: {
-    color: '#d5d5cf',
+    color: '#3b3118',
     fontSize: 14,
     fontWeight: '800',
     marginTop: 2,
@@ -1598,9 +1598,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   referencePhoto: {
-    width: 62,
-    height: 50,
-    borderRadius: 5,
+    width: 68,
+    height: 68,
+    borderRadius: 7,
     marginRight: 12,
     backgroundColor: '#333',
   },
@@ -1647,9 +1647,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   conditionPhoto: {
-    width: 78,
-    height: 66,
-    borderRadius: 5,
+    width: 68,
+    height: 68,
+    borderRadius: 7,
     marginRight: 12,
     backgroundColor: '#333',
   },
