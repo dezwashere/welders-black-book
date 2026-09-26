@@ -2044,9 +2044,20 @@ function WeldingSymbolsScreen({
 
               {expanded ? (
                 <View style={{ width: '100%', marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: BORDER }}>
-                  <InfoLine label="Typical use" value={item.use} multiline />
-                  <InfoLine label={"How to\nRead it"} value={item.read} multiline />
-                  <InfoLine label="Details" value={item.detail} multiline />
+                  <View style={styles.symbolInfoSection}>
+                    <Text style={styles.symbolInfoLabel}>Typical use</Text>
+                    <Text style={styles.symbolInfoValue}>{item.use}</Text>
+                  </View>
+                  <View style={styles.symbolInfoDivider} />
+                  <View style={styles.symbolInfoSection}>
+                    <Text style={styles.symbolInfoLabel}>How to Read it</Text>
+                    <Text style={styles.symbolInfoValue}>{item.read}</Text>
+                  </View>
+                  <View style={styles.symbolInfoDivider} />
+                  <View style={styles.symbolInfoSection}>
+                    <Text style={styles.symbolInfoLabel}>Details</Text>
+                    <Text style={styles.symbolInfoValue}>{item.detail}</Text>
+                  </View>
                   <SaveButton saved={isSaved(savedItem)} onPress={() => onToggleSave(savedItem)} />
                 </View>
               ) : null}
@@ -3423,6 +3434,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  symbolInfoSection: {
+    paddingVertical: 14,
+  },
+  symbolInfoLabel: {
+    color: YELLOW,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 7,
+  },
+  symbolInfoValue: {
+    color: TEXT,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  symbolInfoDivider: {
+    height: 1,
+    backgroundColor: BORDER,
+  },
+
   infoLabel: {
     width: 98,
     color: TEXT,
