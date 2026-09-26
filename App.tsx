@@ -297,6 +297,23 @@ const thicknesses = [
   { label: '1/2"', value: '0.500 in (12.7 mm)', inches: '0.500 in', mm: '12.7 mm', previewHeight: 40, note: 'Heavy plate. Procedure, preheat, joint design, and multiple passes become increasingly important.' },
 ] as const;
 
+const metricThicknesses = [
+  { label: '0.5 mm', value: '0.5 mm', inches: '0.020 in', mm: '0.5 mm', previewHeight: 3, note: 'Very thin metric sheet. Heat control is critical to reduce burn-through and distortion.' },
+  { label: '0.6 mm', value: '0.6 mm', inches: '0.024 in', mm: '0.6 mm', previewHeight: 3, note: 'Very thin metric sheet commonly used for light fabrication.' },
+  { label: '0.8 mm', value: '0.8 mm', inches: '0.031 in', mm: '0.8 mm', previewHeight: 4, note: 'Thin metric sheet. Control heat and distortion carefully.' },
+  { label: '1.0 mm', value: '1.0 mm', inches: '0.039 in', mm: '1.0 mm', previewHeight: 5, note: 'Common thin sheet thickness for fabrication.' },
+  { label: '1.2 mm', value: '1.2 mm', inches: '0.047 in', mm: '1.2 mm', previewHeight: 6, note: 'Common light-gauge metric sheet thickness.' },
+  { label: '1.5 mm', value: '1.5 mm', inches: '0.059 in', mm: '1.5 mm', previewHeight: 7, note: 'Light metric sheet with moderate heat tolerance.' },
+  { label: '2.0 mm', value: '2.0 mm', inches: '0.079 in', mm: '2.0 mm', previewHeight: 9, note: 'Common general-fabrication metric sheet thickness.' },
+  { label: '3.0 mm', value: '3.0 mm', inches: '0.118 in', mm: '3.0 mm', previewHeight: 12, note: 'Common metric sheet and light plate thickness.' },
+  { label: '4.0 mm', value: '4.0 mm', inches: '0.157 in', mm: '4.0 mm', previewHeight: 15, note: 'Metric plate thickness used in general fabrication.' },
+  { label: '5.0 mm', value: '5.0 mm', inches: '0.197 in', mm: '5.0 mm', previewHeight: 18, note: 'Medium metric plate thickness.' },
+  { label: '6.0 mm', value: '6.0 mm', inches: '0.236 in', mm: '6.0 mm', previewHeight: 21, note: 'Common metric plate thickness.' },
+  { label: '8.0 mm', value: '8.0 mm', inches: '0.315 in', mm: '8.0 mm', previewHeight: 27, note: 'Heavier metric plate; joint preparation may be required.' },
+  { label: '10.0 mm', value: '10.0 mm', inches: '0.394 in', mm: '10.0 mm', previewHeight: 33, note: 'Heavy metric plate that often requires multiple passes.' },
+  { label: '12.0 mm', value: '12.0 mm', inches: '0.472 in', mm: '12.0 mm', previewHeight: 39, note: 'Heavy metric plate. Procedure and joint preparation become increasingly important.' },
+] as const;
+
 const conditions = [
   {
     name: 'Clean',
@@ -1527,26 +1544,55 @@ function ThicknessScreen({
   onBack: () => void;
   onSelect: (index: number) => void;
 }) {
+  const [unitSystem, setUnitSystem] = useState<'US' | 'EU'>('US');
+  const items = unitSystem === 'EU' ? metricThicknesses : thicknesses;
+
   return (
     <>
       <Header title="THICKNESS REFERENCE" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        {thicknesses.map((item, index) => (
-          <Pressable
-            key={item.label}
-            onPress={() => onSelect(index)}
-            style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
-          >
-            <View style={styles.thicknessReferenceVisual}>
-              <View style={[styles.thicknessReferenceBar, { height: Math.max(3, Math.min(24, item.previewHeight)) }]} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.referenceTitle}>{item.label}</Text>
-              <Text style={styles.referenceSub}>{item.value}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={22} color={TEXT} />
+        <View style={styles.pipeRegionSwitch}>
+          <Pressable onPress={() => setUnitSystem('US')} style={[styles.pipeRegionButton, unitSystem === 'US' && styles.pipeRegionButtonActive]}>
+            <Text style={[styles.pipeRegionText, unitSystem === 'US' && styles.pipeRegionTextActive]}>US / INCH</Text>
+            <Text style={[styles.pipeRegionSub, unitSystem === 'US' && styles.pipeRegionTextActive]}>Gauge + inch plate</Text>
           </Pressable>
-        ))}
+          <Pressable onPress={() => setUnitSystem('EU')} style={[styles.pipeRegionButton, unitSystem === 'EU' && styles.pipeRegionButtonActive]}>
+            <Text style={[styles.pipeRegionText, unitSystem === 'EU' && styles.pipeRegionTextActive]}>EU / METRIC</Text>
+            <Text style={[styles.pipeRegionSub, unitSystem === 'EU' && styles.pipeRegionTextActive]}>Native mm thickness</Text>
+          </Pressable>
+        </View>
+        {unitSystem === 'EU' ? (
+          <View style={styles.metricModeBanner}>
+            <Ionicons name="information-circle-outline" size={20} color={BLACK} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.metricModeTitle}>METRIC THICKNESS</Text>
+              <Text style={styles.metricModeText}>Metric sheet and plate are specified directly by thickness in millimetres rather than US sheet gauge.</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {items.map((item, index) => {
+          const mm = parseFloat(item.mm);
+          const visualHeight = Math.max(2, Math.min(38, 2 + mm * 2.8));
+          return (
+            <Pressable
+              key={item.label}
+              onPress={() => unitSystem === 'US' && onSelect(index)}
+              style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
+            >
+              <View style={styles.thicknessReferenceVisual}>
+                <View style={[styles.thicknessReferencePlate, { height: visualHeight }]}>
+                  <View style={styles.thicknessReferenceHighlight} />
+                </View>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.referenceTitle}>{item.label}</Text>
+                <Text style={styles.referenceSub}>{unitSystem === 'EU' ? `${item.mm} · ${item.inches}` : item.value}</Text>
+              </View>
+              {unitSystem === 'US' ? <Ionicons name="chevron-forward" size={22} color={TEXT} /> : null}
+            </Pressable>
+          );
+        })}
       </ScrollView>
     </>
   );
@@ -2755,22 +2801,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#777',
   },
   thicknessReferenceVisual: {
-    width: 61,
-    height: 45,
+    width: 74,
+    height: 48,
     borderRadius: 5,
     marginRight: 12,
-    backgroundColor: '#d9ad34',
+    backgroundColor: '#101112',
+    borderWidth: 1,
+    borderColor: '#343637',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  thicknessReferenceBar: {
-    width: 48,
-    minHeight: 3,
+  thicknessReferencePlate: {
+    width: 58,
+    minHeight: 2,
     borderRadius: 2,
-    backgroundColor: '#303234',
+    backgroundColor: '#aeb2b4',
     borderWidth: 1,
-    borderColor: '#55585a',
+    borderColor: '#d5d8d9',
+    justifyContent: 'flex-start',
+    overflow: 'hidden',
+  },
+  thicknessReferenceHighlight: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#f1f2f2',
+    opacity: 0.8,
   },
   referenceTitle: {
     flex: 1,
