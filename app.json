@@ -1,19 +1,33 @@
 {
-  "expo": {
-    "name": "Welder's Black Book",
-    "slug": "welders-black-book",
-    "version": "0.1.0",
-    "orientation": "portrait",
-    "userInterfaceStyle": "dark",
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.dezwashere.weldersblackbook"
-    },
-    "android": {
-      "package": "com.dezwashere.weldersblackbook",
-      "adaptiveIcon": {
-        "backgroundColor": "#000000"
-      }
-    }
-  }
+    "expo":  {
+                 "name":  "Welder\u0027s Black Book",
+                 "slug":  "welders-black-book",
+                 "version":  "0.1.0",
+                 "orientation":  "portrait",
+                 "userInterfaceStyle":  "dark",
+                 "ios":  {
+                             "supportsTablet":  true,
+                             "bundleIdentifier":  "com.dezwashere.weldersblackbook",
+                             "infoPlist":  {
+                                               "ITSAppUsesNonExemptEncryption":  false
+                                           }
+                         },
+                 "android":  {
+                                 "package":  "com.dezwashere.weldersblackbook",
+                                 "adaptiveIcon":  {
+                                                      "backgroundColor":  "#FFD400",
+                                                      "foregroundImage":  "./assets/icon.png"
+                                                  }
+                             },
+                 "plugins":  [
+                                 "expo-status-bar",
+                                 "expo-font"
+                             ],
+                 "extra":  {
+                               "eas":  {
+                                           "projectId":  "17daa37c-7828-4db7-9188-309c8ed4dbe7"
+                                       }
+                           },
+                 "icon":  "./assets/icon.png"
+             }
 }
