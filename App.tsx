@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import {
   SafeAreaView,
   View,
@@ -89,13 +88,6 @@ const BORDER = '#353839';
 const YELLOW = '#f3c646';
 const YELLOW_DARK = '#c99d22';
 const BLACK = '#111111';
-
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const SUPABASE_PUBLISHABLE_KEY =
-  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-
 
 const standardPipeData: { nps: string; dn: string; od: number; walls: Record<string, number> }[] = [
   { nps: '1/8', dn: '6', od: 0.405, walls: { '10': 0.049, '40': 0.068, '80': 0.095 } },
@@ -1216,7 +1208,7 @@ function PipeScreen({
                   <Ionicons name="information-circle-outline" size={20} color={BLACK} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.metricModeTitle}>METRIC MODE · EN 10220</Text>
-                    <Text style={styles.metricModeText}>All pipe dimensions are shown in millimetres (mm).</Text>
+                    <Text style={styles.metricModeText}>EN 10220 steel-tube reference. Dimensions are shown in millimetres (mm); this is not a universal size table for every European piping system.</Text>
                   </View>
                 </View>
                 <Text style={styles.pipeReferenceNote}>EUROPEAN METRIC PIPE</Text>
@@ -1366,7 +1358,7 @@ function RodScreen({
 
   const recommendation = useMemo(() => {
     const thicknessMm = parseFloat(thickness.includes('"')
-      ? thickness.match(/\(([d.]+) mm\)/)?.[1] ?? '6.4'
+      ? thickness.match(/\(([\d.]+) mm\)/)?.[1] ?? '6.4'
       : thickness);
     const size =
       thicknessMm <= 3.2 ? { rod: '2.5 mm', amps: '55–90 A' } :
@@ -1494,6 +1486,12 @@ function RodScreen({
             <Text style={[styles.pipeRegionText, unitSystem === 'EU' && styles.pipeRegionTextActive]}>EU / METRIC</Text>
           </Pressable>
         </View>
+        {unitSystem === 'US' ? (
+          <View style={styles.weldGuideCard}>
+            <Text style={styles.weldGuideTitle}>US STEEL SHEET GAUGE</Text>
+            <Text style={styles.weldGuideBody}>Gauge thickness here is for common steel sheet reference. Aluminum, stainless and other materials can use different gauge-to-thickness conventions; use the actual measured thickness when it matters.</Text>
+          </View>
+        ) : null}
         {unitSystem === 'EU' ? (
           <View style={styles.metricModeBanner}>
             <Ionicons name="information-circle-outline" size={20} color={BLACK} />
@@ -1508,7 +1506,7 @@ function RodScreen({
         <SelectorRow label="Condition" value={condition} options={rodConditions} onChange={setCondition} />
 
         <View style={styles.recommendedCard}>
-          <Text style={styles.recommendedLabel}>Recommended Rod</Text>
+          <Text style={styles.recommendedLabel}>Starting Electrode Size</Text>
           <Text style={styles.recommendedBig}>{recommendation.rod}</Text>
           {unitSystem === 'US' ? <Text style={styles.recommendedSub}>{recommendation.imperial}</Text> : null}
         </View>
@@ -1523,6 +1521,12 @@ function RodScreen({
           saved={isSaved(savedItem)}
           onPress={() => onToggleSave(savedItem)}
         />
+        <View style={styles.weldCaution}>
+          <Ionicons name="warning-outline" size={20} color={BLACK} />
+          <Text style={styles.weldCautionText}>
+            REFERENCE ONLY · Electrode choice and amperage depend on the exact electrode manufacturer, base metal, joint, position, machine and governing WPS/code. Welding fumes are hazardous; use appropriate fume controls, PPE and local safety requirements.
+          </Text>
+        </View>
       </ScrollView>
     </>
   );
@@ -1632,11 +1636,11 @@ const acBalanceOptions = ['60% EN', '65% EN', '70% EN', '75% EN', '80% EN'] as c
 const acFrequencyOptions = ['60 Hz', '80 Hz', '100 Hz', '120 Hz', '150 Hz'] as const;
 
 const stickAmps: Record<string, Record<string, string>> = {
-  E6010: { '3/32"': '50–100 A', '1/8"': '75–125 A', '5/32"': '100–150 A', '3/16"': '150–200 A' },
-  E6011: { '3/32"': '50–100 A', '1/8"': '75–125 A', '5/32"': '100–150 A', '3/16"': '150–200 A' },
-  E6013: { '3/32"': '60–100 A', '1/8"': '90–140 A', '5/32"': '120–160 A', '3/16"': '150–200 A' },
-  E7014: { '3/32"': '70–110 A', '1/8"': '100–150 A', '5/32"': '140–180 A', '3/16"': '180–220 A' },
-  E7018: { '3/32"': '70–110 A', '1/8"': '100–150 A', '5/32"': '140–180 A', '3/16"': '180–220 A' },
+  E6010: { '3/32"': '50–100 A', '1/8"': '75–125 A', '5/32"': '110–165 A', '3/16"': '140–210 A' },
+  E6011: { '3/32"': '50–100 A', '1/8"': '75–125 A', '5/32"': '110–165 A', '3/16"': '140–210 A' },
+  E6013: { '3/32"': '60–90 A', '1/8"': '90–130 A', '5/32"': '120–170 A', '3/16"': '150–220 A' },
+  E7014: { '3/32"': '70–110 A', '1/8"': '100–140 A', '5/32"': '130–180 A', '3/16"': '170–230 A' },
+  E7018: { '3/32"': '90–130 A', '1/8"': '120–170 A', '5/32"': '150–210 A', '3/16"': '190–260 A' },
 };
 
 const stickInfo: Record<string, { polarity: string; position: string; penetration: string; use: string }> = {
@@ -1886,7 +1890,7 @@ function WeldSettingsScreen({
             <View style={styles.weldCaution}>
               <Ionicons name="information-circle-outline" size={20} color={BLACK} />
               <Text style={styles.weldCautionText}>
-                STARTING POINTS ONLY · Confirm the machine chart, WPS, filler/electrode manufacturer data, joint design, position, and job requirements before welding.
+                STARTING POINTS ONLY · Confirm the machine chart, WPS, filler/electrode manufacturer data, joint design, position and job requirements before welding. Welding fumes are hazardous; use appropriate ventilation/LEV, PPE and any required respiratory protection under local rules.
               </Text>
             </View>
           </>
@@ -1980,7 +1984,7 @@ function WeldingSymbolsScreen({ onBack }: { onBack: () => void }) {
       <Header title="WELDING SYMBOLS" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.weldGuideIntro}>
-          <Text style={styles.weldGuideIntroTitle}>AWS / ISO QUICK REFERENCE</Text>
+          <Text style={styles.weldGuideIntroTitle}>AWS A2.4:2020 / ISO 2553:2019 QUICK REFERENCE</Text>
           <Text style={styles.weldGuideIntroText}>
             Use this to read drawings quickly. Always confirm which drawing standard and edition the job uses.
           </Text>
@@ -2041,7 +2045,7 @@ function WeldingSymbolsScreen({ onBack }: { onBack: () => void }) {
         <Text style={styles.weldSectionTitle}>ISO 2553 DIFFERENCE</Text>
         <View style={styles.weldGuideCard}>
           <Text style={styles.weldGuideBody}>
-            ISO 2553 recognizes two representation systems. System A uses a dual reference-line approach; System B uses a single reference line. Do not assume an AWS arrow-side/other-side placement rule applies to an ISO drawing without confirming the system used.
+            ISO 2553:2019 recognizes two representation systems. System A uses a dual reference-line approach; System B uses a single reference line. Do not assume an AWS arrow-side/other-side placement rule applies to an ISO drawing without confirming the system used.
           </Text>
         </View>
 
@@ -2061,7 +2065,7 @@ function MetalScreen({
   onSelect,
 }: {
   onBack: () => void;
-  onSelect: (index: number) => void;
+  onSelect: (index: number, unitSystem: 'US' | 'EU') => void;
 }) {
   return (
     <>
@@ -2073,18 +2077,7 @@ function MetalScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
           >
-            {['Aluminum', 'Cast Iron', 'Brass', 'Bronze', 'Nickel Alloys', 'Titanium', 'Magnesium', 'Copper-Nickel'].includes(metal.name) ? (
-              <Image source={{ uri: metal.image }} style={styles.referencePhoto} resizeMode="cover" />
-            ) : (
-              <SpriteCrop
-                source={APPROVED_METAL_SPRITE}
-                width={62}
-                height={45}
-                spriteHeight={315}
-                y={metal.spriteY}
-                style={styles.referencePhoto}
-              />
-            )}
+            <Image source={{ uri: metal.image }} style={styles.referencePhoto} resizeMode="cover" />
             <Text style={styles.referenceTitle}>{metal.name}</Text>
             <Ionicons name="chevron-forward" size={22} color={TEXT} />
           </Pressable>
@@ -2111,7 +2104,7 @@ function ThicknessScreen({
         <View style={styles.pipeRegionSwitch}>
           <Pressable onPress={() => setUnitSystem('US')} style={[styles.pipeRegionButton, unitSystem === 'US' && styles.pipeRegionButtonActive]}>
             <Text style={[styles.pipeRegionText, unitSystem === 'US' && styles.pipeRegionTextActive]}>US / INCH</Text>
-            <Text style={[styles.pipeRegionSub, unitSystem === 'US' && styles.pipeRegionTextActive]}>Gauge + inch plate</Text>
+            <Text style={[styles.pipeRegionSub, unitSystem === 'US' && styles.pipeRegionTextActive]}>Steel sheet gauge + inch plate</Text>
           </Pressable>
           <Pressable onPress={() => setUnitSystem('EU')} style={[styles.pipeRegionButton, unitSystem === 'EU' && styles.pipeRegionButtonActive]}>
             <Text style={[styles.pipeRegionText, unitSystem === 'EU' && styles.pipeRegionTextActive]}>EU / METRIC</Text>
@@ -2134,7 +2127,7 @@ function ThicknessScreen({
           return (
             <Pressable
               key={item.label}
-              onPress={() => unitSystem === 'US' && onSelect(index)}
+              onPress={() => onSelect(index, unitSystem)}
               style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
             >
               <View style={styles.thicknessReferenceVisual}>
@@ -2146,7 +2139,7 @@ function ThicknessScreen({
                 <Text style={styles.referenceTitle}>{item.label}</Text>
                 <Text style={styles.referenceSub}>{unitSystem === 'EU' ? `${item.mm} · ${item.inches}` : item.value}</Text>
               </View>
-              {unitSystem === 'US' ? <Ionicons name="chevron-forward" size={22} color={TEXT} /> : null}
+              <Ionicons name="chevron-forward" size={22} color={TEXT} />
             </Pressable>
           );
         })}
@@ -2226,21 +2219,23 @@ function MetalDetailScreen({
 
 function ThicknessDetailScreen({
   index,
+  unitSystem,
   onBack,
   isSaved,
   onToggleSave,
 }: {
   index: number;
+  unitSystem: 'US' | 'EU';
   onBack: () => void;
   isSaved: (item: SavedItem) => boolean;
   onToggleSave: (item: SavedItem) => void;
 }) {
-  const item = thicknesses[index];
+  const item = unitSystem === 'EU' ? metricThicknesses[index] : thicknesses[index];
   const savedItem = makeSavedItem(
     'thickness',
     item.label,
     item.value,
-    { index, thickness: item.label, decimal: item.inches, metric: item.mm }
+    { index, unitSystem, thickness: item.label, decimal: item.inches, metric: item.mm }
   );
   return (
     <>
@@ -2317,6 +2312,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [selectedMetal, setSelectedMetal] = useState(0);
   const [selectedThickness, setSelectedThickness] = useState(0);
+  const [selectedThicknessUnit, setSelectedThicknessUnit] = useState<'US' | 'EU'>('US');
   const [selectedCondition, setSelectedCondition] = useState(0);
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [savedLoaded, setSavedLoaded] = useState(false);
@@ -2488,6 +2484,7 @@ export default function App() {
     }
     if (item.kind === 'thickness') {
       setSelectedThickness(Number(item.payload.index ?? 0));
+      setSelectedThicknessUnit(item.payload.unitSystem === 'EU' ? 'EU' : 'US');
       setScreen('thicknessDetail');
       return;
     }
@@ -2685,8 +2682,9 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <ThicknessScreen
           onBack={goHome}
-          onSelect={(index) => {
+          onSelect={(index, unitSystem) => {
             setSelectedThickness(index);
+            setSelectedThicknessUnit(unitSystem);
             setScreen('thicknessDetail');
           }}
         />
@@ -2699,6 +2697,7 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <ThicknessDetailScreen
           index={selectedThickness}
+          unitSystem={selectedThicknessUnit}
           onBack={() => openedSaved ? backFromOpenedSaved() : setScreen('thickness')}
           isSaved={isSaved}
           onToggleSave={toggleSave}
