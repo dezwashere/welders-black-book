@@ -1042,6 +1042,63 @@ function RodScreen({
       };
     }
 
+    const specialMetals: Record<string, { types: string; polarity: string; notes: string }> = {
+      Galvanized: {
+        types: 'E6011 / E7018',
+        polarity: 'AC or DCEP',
+        notes: 'Galvanized steel is zinc-coated carbon steel. Remove zinc from the weld area where practical and use effective fume extraction or ventilation.',
+      },
+      Chromoly: {
+        types: 'E8018-B2 / alloy-specific',
+        polarity: 'DCEP',
+        notes: 'Chromoly filler and heat treatment depend on the exact Cr-Mo grade, thickness, and service requirement. Verify the material grade and welding procedure before welding.',
+      },
+      Copper: {
+        types: 'ECu / copper-alloy specific',
+        polarity: 'Per electrode spec',
+        notes: 'Copper conducts heat very quickly and often requires substantial preheat and heat input. Use filler matched to the specific copper grade or alloy.',
+      },
+      Brass: {
+        types: 'Cu-Si / Cu-Sn filler',
+        polarity: 'Process dependent',
+        notes: 'Brass is a copper-zinc alloy and is commonly brazed or TIG braze-welded rather than stick welded. Zinc fumes are hazardous; identify the alloy and use effective fume control.',
+      },
+      Bronze: {
+        types: 'ECuSn / ECuAl / alloy-specific',
+        polarity: 'Per electrode spec',
+        notes: 'Bronze covers several copper alloys, so filler depends on the exact bronze composition. Identify the alloy before selecting a rod or welding procedure.',
+      },
+      'Nickel Alloys': {
+        types: 'ENiCrFe / ENiCrMo / alloy-specific',
+        polarity: 'DCEP',
+        notes: 'Nickel alloys require filler matched to the specific base alloy and service conditions. Keep the joint very clean and follow the applicable welding procedure.',
+      },
+      Titanium: {
+        types: 'GTAW preferred / titanium filler',
+        polarity: 'DCEN for GTAW',
+        notes: 'Titanium is generally GTAW welded rather than stick welded. The weld and hot heat-affected zone require high-purity inert-gas shielding until sufficiently cool.',
+      },
+      Magnesium: {
+        types: 'GTAW/GMAW preferred',
+        polarity: 'Process dependent',
+        notes: 'Magnesium is generally GTAW or GMAW welded with alloy-compatible filler rather than stick welded. Clean thoroughly and use procedures appropriate to the exact alloy.',
+      },
+      'Copper-Nickel': {
+        types: 'CuNi filler / alloy-specific',
+        polarity: 'Process dependent',
+        notes: 'Copper-nickel is commonly GTAW or GMAW welded with filler matched to the Cu-Ni grade. Keep the joint clean and verify the alloy and service requirements.',
+      },
+    };
+
+    if (specialMetals[metal]) {
+      const special = specialMetals[metal];
+      return {
+        ...size,
+        imperial: size.rod === '2.4 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
+        ...special,
+      };
+    }
+
     const dirty = condition !== 'Clean';
     return {
       ...size,
@@ -1749,11 +1806,7 @@ export default function App() {
             <Text style={styles.brand}>WELDER’S</Text>
             <Text style={styles.brand}>BLACK BOOK</Text>
           </View>
-          <View style={styles.homeHeaderActions}>
-            <Pressable hitSlop={12} style={styles.settingsButton}>
-              <Ionicons name="settings-outline" size={28} color={TEXT} />
-            </Pressable>
-          </View>
+
         </View>
 
         <Pressable
