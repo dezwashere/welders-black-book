@@ -2045,7 +2045,7 @@ function WeldingSymbolsScreen({
               {expanded ? (
                 <View style={{ width: '100%', marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: BORDER }}>
                   <InfoLine label="Typical use" value={item.use} multiline />
-                  <InfoLine label="How to read it" value={item.read} multiline />
+                  <InfoLine label={"How to\nRead it"} value={item.read} multiline />
                   <InfoLine label="Details" value={item.detail} multiline />
                   <SaveButton saved={isSaved(savedItem)} onPress={() => onToggleSave(savedItem)} />
                 </View>
