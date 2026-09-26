@@ -30,11 +30,12 @@ type Screen =
   | 'metalDetail'
   | 'thicknessDetail'
   | 'conditionDetail'
-  | 'saved';
+  | 'saved'
+  | 'project';
 
 
 
-type SavedKind = 'circle' | 'triangle' | 'rod' | 'metal' | 'thickness' | 'condition' | 'setup';
+type SavedKind = 'circle' | 'triangle' | 'rod' | 'metal' | 'thickness' | 'condition';
 
 type SavedItem = {
   id: string;
@@ -43,10 +44,16 @@ type SavedItem = {
   title: string;
   subtitle: string;
   payload: Record<string, string | number>;
-  parts?: SavedItem[];
+};
+
+type SavedProject = {
+  id: string;
+  name: string;
+  itemIds: string[];
 };
 
 const SAVED_KEY = 'wbb_saved_items_v1';
+const PROJECTS_KEY = 'wbb_saved_projects_v1';
 const SHARE_FUNCTION_URL =
   'https://dylsigpylgxumehseckr.supabase.co/functions/v1/share-setup';
 
@@ -436,134 +443,230 @@ function SaveButton({
 
 function SavedScreen({
   items,
+  projects,
   onBack,
   onOpen,
   onShare,
   onDelete,
-  onCombine,
+  onOpenProject,
 }: {
   items: SavedItem[];
+  projects: SavedProject[];
   onBack: () => void;
   onOpen: (item: SavedItem) => void;
   onShare: (item: SavedItem) => void;
   onDelete: (item: SavedItem) => void;
-  onCombine: (items: SavedItem[], name: string) => void;
+  onOpenProject: (project: SavedProject) => void;
 }) {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [setupName, setSetupName] = useState('');
-
-  const toggleSelected = (id: string) => {
-    setSelectedIds((current) =>
-      current.includes(id) ? current.filter((value) => value !== id) : [...current, id]
-    );
-  };
-
-  const selectedItems = items.filter(
-    (item) => item.kind !== 'setup' && selectedIds.includes(item.id)
-  );
+  const groupedIds = new Set(projects.flatMap((project) => project.itemIds));
+  const individualItems = items.filter((item) => !groupedIds.has(item.id));
 
   return (
     <>
       <Header title="SAVED" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.savedIntro}>
-          <Text style={styles.savedIntroTitle}>SAVED ITEMS</Text>
-          <Text style={styles.savedIntroText}>
-            Select two or more saved measurements, metals, thicknesses, conditions, or welding setups to keep them together as one saved item.
-          </Text>
-        </View>
-
-        {selectedItems.length >= 2 ? (
-          <View style={styles.combineSetupBox}>
-            <Text style={styles.selectorLabel}>Setup name</Text>
-            <TextInput
-              value={setupName}
-              onChangeText={setSetupName}
-              placeholder="e.g. Trailer Repair"
-              placeholderTextColor="#777"
-              style={styles.setupNameInput}
-              returnKeyType="done"
-            />
-            <Pressable
-              onPress={() => {
-                onCombine(selectedItems, setupName.trim());
-                setSelectedIds([]);
-                setSetupName('');
-              }}
-              style={styles.combineButton}
-            >
-              <Ionicons name="albums-outline" size={20} color={BLACK} />
-              <Text style={styles.combineButtonText}>SAVE {selectedItems.length} ITEMS TOGETHER</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {items.length === 0 ? (
-          <View style={styles.emptySaved}>
-            <Ionicons name="bookmark-outline" size={44} color={MUTED} />
-            <Text style={styles.emptySavedTitle}>Nothing saved yet</Text>
-            <Text style={styles.emptySavedText}>
-              Tap SAVE on a measurement, metal, thickness, condition, or welding setup.
-            </Text>
-          </View>
+        <Text style={styles.savedSectionTitle}>PROJECTS</Text>
+        {projects.length === 0 ? (
+          <Text style={styles.savedSectionEmpty}>No projects yet. Save an item and choose Add to project.</Text>
         ) : (
-          items.map((item) => {
-            const selected = selectedIds.includes(item.id);
-            const isSetup = item.kind === 'setup';
-            return (
-              <View key={item.id} style={[styles.savedCard, selected && styles.savedCardSelected]}>
-                <View style={styles.savedCardTop}>
-                  {!isSetup ? (
-                    <Pressable
-                      onPress={() => toggleSelected(item.id)}
-                      hitSlop={8}
-                      style={[styles.savedCheck, selected && styles.savedCheckSelected]}
-                    >
-                      {selected ? <Ionicons name="checkmark" size={18} color={BLACK} /> : null}
-                    </Pressable>
-                  ) : (
-                    <View style={styles.savedSetupIcon}>
-                      <Ionicons name="albums-outline" size={19} color={YELLOW} />
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.savedCardTitle}>{item.title}</Text>
-                    <Text style={styles.savedCardSub}>{item.subtitle}</Text>
-                    {isSetup && item.parts ? (
-                      <View style={styles.savedParts}>
-                        {item.parts.map((part) => (
-                          <View key={part.id} style={styles.savedPartRow}>
-                            <Text style={styles.savedPartKind}>{part.kind.toUpperCase()}</Text>
-                            <View style={{ flex: 1 }}>
-                              <Text style={styles.savedPartTitle}>{part.title}</Text>
-                              <Text style={styles.savedPartSub}>{part.subtitle}</Text>
-                            </View>
-                          </View>
-                        ))}
-                      </View>
-                    ) : null}
-                  </View>
-                  <Pressable onPress={() => onDelete(item)} hitSlop={10} style={styles.savedDelete}>
-                    <Ionicons name="trash-outline" size={20} color={MUTED} />
-                  </Pressable>
-                </View>
-                <View style={styles.savedActions}>
-                  {!isSetup ? (
-                    <Pressable onPress={() => onOpen(item)} style={styles.savedActionPrimary}>
-                      <Text style={styles.savedActionPrimaryText}>OPEN</Text>
-                    </Pressable>
-                  ) : null}
-                  <Pressable onPress={() => onShare(item)} style={styles.savedActionSecondary}>
-                    <Ionicons name="share-outline" size={18} color={TEXT} />
-                    <Text style={styles.savedActionSecondaryText}>SHARE</Text>
-                  </Pressable>
-                </View>
+          projects.map((project) => (
+            <Pressable
+              key={project.id}
+              onPress={() => onOpenProject(project)}
+              style={({ pressed }) => [styles.projectCard, pressed && styles.pressed]}
+            >
+              <View style={styles.projectIcon}>
+                <Ionicons name="folder-outline" size={25} color={YELLOW} />
               </View>
-            );
-          })
+              <View style={{ flex: 1 }}>
+                <Text style={styles.projectName}>{project.name}</Text>
+                <Text style={styles.projectCount}>
+                  {project.itemIds.length === 1 ? '1 item' : `${project.itemIds.length} items`}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={22} color={TEXT} />
+            </Pressable>
+          ))
+        )}
+
+        <Text style={[styles.savedSectionTitle, { marginTop: 22 }]}>INDIVIDUAL ITEMS</Text>
+        {individualItems.length === 0 ? (
+          <Text style={styles.savedSectionEmpty}>No ungrouped saved items.</Text>
+        ) : (
+          individualItems.map((item) => (
+            <View key={item.id} style={styles.savedCard}>
+              <View style={styles.savedCardTop}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.savedCardTitle}>{item.title}</Text>
+                  <Text style={styles.savedCardSub}>{item.subtitle}</Text>
+                </View>
+                <Pressable onPress={() => onDelete(item)} hitSlop={10} style={styles.savedDelete}>
+                  <Ionicons name="trash-outline" size={20} color={MUTED} />
+                </Pressable>
+              </View>
+              <View style={styles.savedActions}>
+                <Pressable onPress={() => onOpen(item)} style={styles.savedActionPrimary}>
+                  <Text style={styles.savedActionPrimaryText}>OPEN</Text>
+                </Pressable>
+                <Pressable onPress={() => onShare(item)} style={styles.savedActionSecondary}>
+                  <Ionicons name="share-outline" size={18} color={TEXT} />
+                  <Text style={styles.savedActionSecondaryText}>SHARE</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))
         )}
       </ScrollView>
     </>
+  );
+}
+
+function ProjectScreen({
+  project,
+  items,
+  onBack,
+  onOpen,
+  onShare,
+  onDelete,
+}: {
+  project: SavedProject;
+  items: SavedItem[];
+  onBack: () => void;
+  onOpen: (item: SavedItem) => void;
+  onShare: (item: SavedItem) => void;
+  onDelete: (item: SavedItem) => void;
+}) {
+  const projectItems = project.itemIds
+    .map((id) => items.find((item) => item.id === id))
+    .filter((item): item is SavedItem => Boolean(item));
+
+  return (
+    <>
+      <Header title={project.name.toUpperCase()} onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.projectDetailHeader}>
+          <Ionicons name="folder-open-outline" size={30} color={YELLOW} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.projectDetailName}>{project.name}</Text>
+            <Text style={styles.projectCount}>
+              {projectItems.length === 1 ? '1 saved item' : `${projectItems.length} saved items`}
+            </Text>
+          </View>
+        </View>
+        {projectItems.map((item) => (
+          <View key={item.id} style={styles.savedCard}>
+            <View style={styles.savedCardTop}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.savedPartKind}>{item.kind.toUpperCase()}</Text>
+                <Text style={styles.savedCardTitle}>{item.title}</Text>
+                <Text style={styles.savedCardSub}>{item.subtitle}</Text>
+              </View>
+              <Pressable onPress={() => onDelete(item)} hitSlop={10} style={styles.savedDelete}>
+                <Ionicons name="trash-outline" size={20} color={MUTED} />
+              </Pressable>
+            </View>
+            <View style={styles.savedActions}>
+              <Pressable onPress={() => onOpen(item)} style={styles.savedActionPrimary}>
+                <Text style={styles.savedActionPrimaryText}>OPEN</Text>
+              </Pressable>
+              <Pressable onPress={() => onShare(item)} style={styles.savedActionSecondary}>
+                <Ionicons name="share-outline" size={18} color={TEXT} />
+                <Text style={styles.savedActionSecondaryText}>SHARE</Text>
+              </Pressable>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    </>
+  );
+}
+
+function SaveToProjectModal({
+  visible,
+  item,
+  projects,
+  onClose,
+  onSaveIndividual,
+  onAddExisting,
+  onCreateProject,
+}: {
+  visible: boolean;
+  item: SavedItem | null;
+  projects: SavedProject[];
+  onClose: () => void;
+  onSaveIndividual: (item: SavedItem) => void;
+  onAddExisting: (item: SavedItem, projectId: string) => void;
+  onCreateProject: (item: SavedItem, name: string) => void;
+}) {
+  const [creating, setCreating] = useState(false);
+  const [projectName, setProjectName] = useState('');
+
+  useEffect(() => {
+    if (!visible) {
+      setCreating(false);
+      setProjectName('');
+    }
+  }, [visible]);
+
+  if (!item) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.saveModalBackdrop} onPress={onClose}>
+        <Pressable style={styles.saveModalCard} onPress={() => {}}>
+          <Text style={styles.saveModalTitle}>Save item</Text>
+          <Text style={styles.saveModalItem}>{item.title}</Text>
+
+          <Pressable onPress={() => onSaveIndividual(item)} style={styles.saveModalPrimary}>
+            <Ionicons name="bookmark-outline" size={20} color={BLACK} />
+            <Text style={styles.saveModalPrimaryText}>SAVE BY ITSELF</Text>
+          </Pressable>
+
+          <Text style={styles.saveModalLabel}>ADD TO PROJECT</Text>
+          {projects.map((project) => (
+            <Pressable
+              key={project.id}
+              onPress={() => onAddExisting(item, project.id)}
+              style={styles.saveModalProject}
+            >
+              <Ionicons name="folder-outline" size={20} color={YELLOW} />
+              <Text style={styles.saveModalProjectText}>{project.name}</Text>
+              <Ionicons name="chevron-forward" size={19} color={MUTED} />
+            </Pressable>
+          ))}
+
+          {!creating ? (
+            <Pressable onPress={() => setCreating(true)} style={styles.saveModalNewProject}>
+              <Ionicons name="add" size={21} color={TEXT} />
+              <Text style={styles.saveModalNewProjectText}>NEW PROJECT</Text>
+            </Pressable>
+          ) : (
+            <View style={styles.newProjectBox}>
+              <Text style={styles.saveModalLabel}>PROJECT NAME</Text>
+              <TextInput
+                value={projectName}
+                onChangeText={setProjectName}
+                placeholder="Leave blank for Untitled"
+                placeholderTextColor="#777"
+                style={styles.projectNameInput}
+                autoFocus
+                returnKeyType="done"
+              />
+              <Pressable
+                onPress={() => onCreateProject(item, projectName.trim())}
+                style={styles.saveModalPrimary}
+              >
+                <Text style={styles.saveModalPrimaryText}>CREATE PROJECT & SAVE</Text>
+              </Pressable>
+            </View>
+          )}
+
+          <Pressable onPress={onClose} style={styles.saveModalCancel}>
+            <Text style={styles.saveModalCancelText}>CANCEL</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -1235,6 +1338,10 @@ export default function App() {
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const [savedLoaded, setSavedLoaded] = useState(false);
   const [openedSaved, setOpenedSaved] = useState<SavedItem | null>(null);
+  const [projects, setProjects] = useState<SavedProject[]>([]);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [pendingSave, setPendingSave] = useState<SavedItem | null>(null);
   const goHome = () => {
     setOpenedSaved(null);
     setScreen('home');
@@ -1253,6 +1360,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    AsyncStorage.getItem(PROJECTS_KEY)
+      .then((raw) => {
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setProjects(parsed);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setProjectsLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (!projectsLoaded) return;
+    AsyncStorage.setItem(PROJECTS_KEY, JSON.stringify(projects)).catch(() => {});
+  }, [projects, projectsLoaded]);
+
+  useEffect(() => {
     if (!savedLoaded) return;
     AsyncStorage.setItem(SAVED_KEY, JSON.stringify(savedItems)).catch(() => {});
   }, [savedItems, savedLoaded]);
@@ -1261,41 +1385,66 @@ export default function App() {
     savedItems.some((saved) => saved.signature === item.signature);
 
   const toggleSave = (item: SavedItem) => {
-    setSavedItems((current) => {
-      const existing = current.find((saved) => saved.signature === item.signature);
-      if (existing) return current.filter((saved) => saved.id !== existing.id);
-      return [item, ...current];
-    });
+    const existing = savedItems.find((saved) => saved.signature === item.signature);
+    if (existing) {
+      setSavedItems((current) => current.filter((saved) => saved.id !== existing.id));
+      setProjects((current) =>
+        current.map((project) => ({
+          ...project,
+          itemIds: project.itemIds.filter((id) => id !== existing.id),
+        }))
+      );
+      return;
+    }
+    setPendingSave(item);
+  };
+
+  const saveIndividual = (item: SavedItem) => {
+    setSavedItems((current) => [item, ...current]);
+    setPendingSave(null);
+  };
+
+  const addToExistingProject = (item: SavedItem, projectId: string) => {
+    setSavedItems((current) => [item, ...current]);
+    setProjects((current) =>
+      current.map((project) =>
+        project.id === projectId
+          ? { ...project, itemIds: [...project.itemIds, item.id] }
+          : project
+      )
+    );
+    setPendingSave(null);
+  };
+
+  const createProjectAndSave = (item: SavedItem, requestedName: string) => {
+    const usedUntitled = projects
+      .map((project) => /^Untitled (\d+)$/.exec(project.name))
+      .filter((match): match is RegExpExecArray => Boolean(match))
+      .map((match) => Number(match[1]))
+      .filter(Number.isFinite);
+    const nextUntitled = usedUntitled.length ? Math.max(...usedUntitled) + 1 : 1;
+    const name = requestedName || `Untitled ${nextUntitled}`;
+    const project: SavedProject = {
+      id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      itemIds: [item.id],
+    };
+    setSavedItems((current) => [item, ...current]);
+    setProjects((current) => [project, ...current]);
+    setPendingSave(null);
   };
 
   const deleteSaved = (item: SavedItem) => {
     setSavedItems((current) => current.filter((saved) => saved.id !== item.id));
-  };
-
-  const combineSaved = (parts: SavedItem[], name: string) => {
-    if (parts.length < 2) return;
-    const untitledNumbers = savedItems
-      .filter((item) => item.kind === 'setup')
-      .map((item) => /^Untitled (\\d+)$/.exec(item.title))
-      .filter((match): match is RegExpExecArray => Boolean(match))
-      .map((match) => Number(match[1]))
-      .filter(Number.isFinite);
-    const nextUntitled = untitledNumbers.length ? Math.max(...untitledNumbers) + 1 : 1;
-    const title = name || `Untitled ${nextUntitled}`;
-    const setup: SavedItem = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      signature: `setup|${title}|${parts.map((part) => part.signature).sort().join('|')}`,
-      kind: 'setup',
-      title,
-      subtitle: `${parts.length} saved details in one setup`,
-      payload: { count: parts.length, name: title },
-      parts,
-    };
-    setSavedItems((current) => [setup, ...current]);
+    setProjects((current) =>
+      current.map((project) => ({
+        ...project,
+        itemIds: project.itemIds.filter((id) => id !== item.id),
+      }))
+    );
   };
 
   const openSaved = (item: SavedItem) => {
-    if (item.kind === 'setup') return;
     setOpenedSaved(item);
 
     if (item.kind === 'metal') {
@@ -1327,7 +1476,6 @@ export default function App() {
           title: item.title,
           subtitle: item.subtitle,
           payload: item.payload,
-          parts: item.parts,
         }),
       });
 
@@ -1354,6 +1502,15 @@ export default function App() {
           isSaved={isSaved}
           onToggleSave={toggleSave}
         />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
+        />
       </SafeAreaView>
     );
   }
@@ -1366,6 +1523,15 @@ export default function App() {
           initial={openedSaved?.kind === 'triangle' ? openedSaved : null}
           isSaved={isSaved}
           onToggleSave={toggleSave}
+        />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
         />
       </SafeAreaView>
     );
@@ -1386,6 +1552,15 @@ export default function App() {
           onBack={goHome}
           isSaved={isSaved}
           onToggleSave={toggleSave}
+        />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
         />
       </SafeAreaView>
     );
@@ -1414,6 +1589,15 @@ export default function App() {
           isSaved={isSaved}
           onToggleSave={toggleSave}
         />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
+        />
       </SafeAreaView>
     );
   }
@@ -1440,6 +1624,15 @@ export default function App() {
           onBack={() => setScreen('thickness')}
           isSaved={isSaved}
           onToggleSave={toggleSave}
+        />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
         />
       </SafeAreaView>
     );
@@ -1468,6 +1661,15 @@ export default function App() {
           isSaved={isSaved}
           onToggleSave={toggleSave}
         />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
+        />
       </SafeAreaView>
     );
   }
@@ -1477,11 +1679,35 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <SavedScreen
           items={savedItems}
+          projects={projects}
           onBack={goHome}
           onOpen={openSaved}
           onShare={shareSaved}
           onDelete={deleteSaved}
-          onCombine={combineSaved}
+          onOpenProject={(project) => {
+            setSelectedProjectId(project.id);
+            setScreen('project');
+          }}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (screen === 'project') {
+    const project = projects.find((entry) => entry.id === selectedProjectId);
+    if (!project) {
+      setScreen('saved');
+      return null;
+    }
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ProjectScreen
+          project={project}
+          items={savedItems}
+          onBack={() => setScreen('saved')}
+          onOpen={openSaved}
+          onShare={shareSaved}
+          onDelete={deleteSaved}
         />
       </SafeAreaView>
     );
@@ -2396,5 +2622,175 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     marginTop: 2,
+  },
+  savedSectionTitle: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+    marginBottom: 9,
+  },
+  savedSectionEmpty: {
+    color: MUTED,
+    fontSize: 14,
+    lineHeight: 20,
+    paddingVertical: 10,
+  },
+  projectCard: {
+    minHeight: 70,
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  projectIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: PANEL_DARK,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  projectName: {
+    color: TEXT,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  projectCount: {
+    color: MUTED,
+    fontSize: 13,
+    marginTop: 3,
+  },
+  projectDetailHeader: {
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  projectDetailName: {
+    color: TEXT,
+    fontSize: 21,
+    fontWeight: '900',
+  },
+  saveModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.78)',
+    justifyContent: 'flex-end',
+  },
+  saveModalCard: {
+    maxHeight: '82%',
+    backgroundColor: PANEL,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 18,
+    paddingBottom: 28,
+  },
+  saveModalTitle: {
+    color: TEXT,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  saveModalItem: {
+    color: MUTED,
+    fontSize: 14,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  saveModalLabel: {
+    color: MUTED,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    marginTop: 15,
+    marginBottom: 7,
+  },
+  saveModalPrimary: {
+    minHeight: 50,
+    backgroundColor: YELLOW,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: YELLOW_DARK,
+    paddingHorizontal: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  saveModalPrimaryText: {
+    color: BLACK,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  saveModalProject: {
+    minHeight: 50,
+    backgroundColor: PANEL_LIGHT,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 12,
+    marginBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  saveModalProjectText: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  saveModalNewProject: {
+    minHeight: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#55585a',
+    paddingHorizontal: 12,
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  saveModalNewProjectText: {
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  newProjectBox: {
+    marginTop: 4,
+  },
+  projectNameInput: {
+    minHeight: 50,
+    backgroundColor: PANEL_DARK,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BORDER,
+    color: TEXT,
+    fontSize: 17,
+    paddingHorizontal: 12,
+    marginBottom: 9,
+  },
+  saveModalCancel: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  saveModalCancelText: {
+    color: MUTED,
+    fontSize: 13,
+    fontWeight: '900',
   },
 });
