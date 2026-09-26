@@ -13,6 +13,7 @@ import {
   Image,
   Share,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -648,17 +649,70 @@ function PipeScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
-function SelectorRow({ label, value }: { label: string; value: string }) {
+function SelectorRow({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
   return (
     <View style={styles.selectorBlock}>
       <Text style={styles.selectorLabel}>{label}</Text>
-      <Pressable style={styles.selectorField}>
+      <Pressable
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => [styles.selectorField, pressed && styles.pressed]}
+      >
         <Text style={styles.selectorValue}>{value}</Text>
         <Ionicons name="chevron-down" size={20} color={TEXT} />
       </Pressable>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.selectorModalBackdrop} onPress={() => setOpen(false)}>
+          <View style={styles.selectorModalCard}>
+            <Text style={styles.selectorModalTitle}>{label}</Text>
+            <ScrollView style={styles.selectorModalList}>
+              {options.map((option) => (
+                <Pressable
+                  key={option}
+                  onPress={() => {
+                    onChange(option);
+                    setOpen(false);
+                  }}
+                  style={({ pressed }) => [
+                    styles.selectorOption,
+                    option === value && styles.selectorOptionActive,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.selectorOptionText,
+                      option === value && styles.selectorOptionTextActive,
+                    ]}
+                  >
+                    {option}
+                  </Text>
+                  {option === value ? <Ionicons name="checkmark" size={22} color={BLACK} /> : null}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
+
+const rodMetals = ['Mild Steel', 'Stainless Steel', 'Cast Iron'] as const;
+const rodThicknesses = ['1/8" (3 mm)', '3/16" (5 mm)', '1/4" (6 mm)', '3/8" (10 mm)', '1/2" (13 mm)'] as const;
+const rodConditions = ['Clean', 'Light Rust', 'Moderate Rust', 'Heavy Rust'] as const;
 
 function RodScreen({
   onBack,
@@ -669,18 +723,67 @@ function RodScreen({
   isSaved: (item: SavedItem) => boolean;
   onToggleSave: (item: SavedItem) => void;
 }) {
+  const [metal, setMetal] = useState<string>('Mild Steel');
+  const [thickness, setThickness] = useState<string>('1/4" (6 mm)');
+  const [condition, setCondition] = useState<string>('Clean');
+
+  const recommendation = useMemo(() => {
+    const rodByThickness: Record<string, { rod: string; amps: string }> = {
+      '1/8" (3 mm)': { rod: '2.4 mm', amps: '55–90 A' },
+      '3/16" (5 mm)': { rod: '3.2 mm', amps: '75–115 A' },
+      '1/4" (6 mm)': { rod: '3.2 mm', amps: '90–130 A' },
+      '3/8" (10 mm)': { rod: '4.0 mm', amps: '120–180 A' },
+      '1/2" (13 mm)': { rod: '4.0 mm', amps: '130–190 A' },
+    };
+    const size = rodByThickness[thickness] ?? rodByThickness['1/4" (6 mm)'];
+
+    if (metal === 'Stainless Steel') {
+      return {
+        ...size,
+        imperial: size.rod === '2.4 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
+        types: 'E308L-16',
+        polarity: 'DCEP or AC',
+        notes: 'Common choice for 304/304L stainless. Verify the base-metal grade before selecting filler.',
+      };
+    }
+
+    if (metal === 'Cast Iron') {
+      return {
+        ...size,
+        imperial: size.rod === '2.4 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
+        types: 'ENi-CI / ENiFe-CI',
+        polarity: 'Per electrode spec',
+        notes: 'Cast-iron repairs depend on the casting and procedure. Preheat and controlled cooling may be required.',
+      };
+    }
+
+    const dirty = condition !== 'Clean';
+    return {
+      ...size,
+      imperial: size.rod === '2.4 mm' ? '(3/32")' : size.rod === '3.2 mm' ? '(1/8")' : '(5/32")',
+      types: dirty ? 'E6011' : 'E6011, E7018',
+      polarity: dirty ? 'AC or DCEP' : 'AC or DCEP',
+      notes:
+        condition === 'Heavy Rust'
+          ? 'Clean to sound metal before welding. Heavy corrosion can mean unsafe material loss.'
+          : dirty
+            ? 'E6011 tolerates contamination better, but remove rust and scale where practical.'
+            : 'Good all-purpose setup for clean mild steel. E7018 is commonly used where a low-hydrogen electrode is required.',
+    };
+  }, [metal, thickness, condition]);
+
   const savedItem = makeSavedItem(
     'rod',
-    'Mild Steel • 1/4"',
-    'E6011 / E7018 • 90–130 A',
+    `${metal} • ${thickness}`,
+    `${recommendation.types} • ${recommendation.amps}`,
     {
-      metal: 'Mild Steel',
-      thickness: '1/4" (6 mm)',
-      condition: 'Clean',
-      rod: '3.2 mm (1/8")',
-      types: 'E6011, E7018',
-      polarity: 'AC or DCEP',
-      amperage: '90–130 A',
+      metal,
+      thickness,
+      condition,
+      rod: `${recommendation.rod} ${recommendation.imperial}`,
+      types: recommendation.types,
+      polarity: recommendation.polarity,
+      amperage: recommendation.amps,
     }
   );
 
@@ -688,25 +791,21 @@ function RodScreen({
     <>
       <Header title="WELDING ROD SELECTOR" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        <SelectorRow label="Metal" value="Mild Steel" />
-        <SelectorRow label="Thickness" value='1/4" (6 mm)' />
-        <SelectorRow label="Condition" value="Clean" />
+        <SelectorRow label="Metal" value={metal} options={rodMetals} onChange={setMetal} />
+        <SelectorRow label="Thickness" value={thickness} options={rodThicknesses} onChange={setThickness} />
+        <SelectorRow label="Condition" value={condition} options={rodConditions} onChange={setCondition} />
 
         <View style={styles.recommendedCard}>
           <Text style={styles.recommendedLabel}>Recommended Rod</Text>
-          <Text style={styles.recommendedBig}>3.2 mm</Text>
-          <Text style={styles.recommendedSub}>(1/8")</Text>
+          <Text style={styles.recommendedBig}>{recommendation.rod}</Text>
+          <Text style={styles.recommendedSub}>{recommendation.imperial}</Text>
         </View>
 
         <View style={styles.infoCard}>
-          <InfoLine label="Common Types" value="E6011, E7018" />
-          <InfoLine label="Polarity" value="AC or DCEP" />
-          <InfoLine label="Amperage" value="90 – 130 A" />
-          <InfoLine
-            label="Notes"
-            value="Good all-purpose for mild steel. E6011 for dirty/rusty, E7018 for clean."
-            multiline
-          />
+          <InfoLine label="Common Types" value={recommendation.types} />
+          <InfoLine label="Polarity" value={recommendation.polarity} />
+          <InfoLine label="Amperage" value={recommendation.amps} />
+          <InfoLine label="Notes" value={recommendation.notes} multiline />
         </View>
         <SaveButton
           saved={isSaved(savedItem)}
@@ -1584,6 +1683,51 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: 18,
     fontWeight: '700',
+  },
+  selectorModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  selectorModalCard: {
+    maxHeight: '70%',
+    backgroundColor: PANEL,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+  },
+  selectorModalTitle: {
+    color: TEXT,
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 10,
+  },
+  selectorModalList: {
+    flexGrow: 0,
+  },
+  selectorOption: {
+    minHeight: 52,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    marginBottom: 6,
+    backgroundColor: PANEL_LIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectorOptionActive: {
+    backgroundColor: YELLOW,
+  },
+  selectorOptionText: {
+    color: TEXT,
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  selectorOptionTextActive: {
+    color: BLACK,
+    fontWeight: '900',
   },
   recommendedCard: {
     backgroundColor: YELLOW,
