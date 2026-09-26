@@ -447,9 +447,10 @@ function SavedScreen({
   onOpen: (item: SavedItem) => void;
   onShare: (item: SavedItem) => void;
   onDelete: (item: SavedItem) => void;
-  onCombine: (items: SavedItem[]) => void;
+  onCombine: (items: SavedItem[], name: string) => void;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [setupName, setSetupName] = useState('');
 
   const toggleSelected = (id: string) => {
     setSelectedIds((current) =>
@@ -473,16 +474,28 @@ function SavedScreen({
         </View>
 
         {selectedItems.length >= 2 ? (
-          <Pressable
-            onPress={() => {
-              onCombine(selectedItems);
-              setSelectedIds([]);
-            }}
-            style={styles.combineButton}
-          >
-            <Ionicons name="albums-outline" size={20} color={BLACK} />
-            <Text style={styles.combineButtonText}>SAVE {selectedItems.length} ITEMS TOGETHER</Text>
-          </Pressable>
+          <View style={styles.combineSetupBox}>
+            <Text style={styles.selectorLabel}>Setup name</Text>
+            <TextInput
+              value={setupName}
+              onChangeText={setSetupName}
+              placeholder="e.g. Trailer Repair"
+              placeholderTextColor="#777"
+              style={styles.setupNameInput}
+              returnKeyType="done"
+            />
+            <Pressable
+              onPress={() => {
+                onCombine(selectedItems, setupName.trim());
+                setSelectedIds([]);
+                setSetupName('');
+              }}
+              style={styles.combineButton}
+            >
+              <Ionicons name="albums-outline" size={20} color={BLACK} />
+              <Text style={styles.combineButtonText}>SAVE {selectedItems.length} ITEMS TOGETHER</Text>
+            </Pressable>
+          </View>
         ) : null}
 
         {items.length === 0 ? (
@@ -1259,20 +1272,21 @@ export default function App() {
     setSavedItems((current) => current.filter((saved) => saved.id !== item.id));
   };
 
-  const combineSaved = (parts: SavedItem[]) => {
+  const combineSaved = (parts: SavedItem[], name: string) => {
     if (parts.length < 2) return;
-    const title = parts
+    const fallbackTitle = parts
       .map((part) => part.title)
       .slice(0, 2)
       .join(' + ');
     const extra = parts.length > 2 ? ` + ${parts.length - 2} more` : '';
+    const title = name || fallbackTitle + extra;
     const setup: SavedItem = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      signature: `setup|${parts.map((part) => part.signature).sort().join('|')}`,
+      signature: `setup|${title}|${parts.map((part) => part.signature).sort().join('|')}`,
       kind: 'setup',
-      title: title + extra,
+      title,
       subtitle: `${parts.length} saved details in one setup`,
-      payload: { count: parts.length },
+      payload: { count: parts.length, name: title },
       parts,
     };
     setSavedItems((current) => [setup, ...current]);
@@ -2288,6 +2302,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     marginTop: 5,
+  },
+  combineSetupBox: {
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 12,
+    marginBottom: 12,
+  },
+  setupNameInput: {
+    minHeight: 48,
+    backgroundColor: PANEL_DARK,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BORDER,
+    color: TEXT,
+    fontSize: 16,
+    paddingHorizontal: 12,
+    marginTop: 7,
+    marginBottom: 10,
   },
   combineButton: {
     minHeight: 50,
