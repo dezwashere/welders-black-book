@@ -989,12 +989,31 @@ function PipeScreen({
       });
   }, [initial]);
 
+  const findMatchingPipe = (columnIndex: number, value: string) => {
+    const normalized = value.trim();
+    if (!normalized) return null;
+
+    if (columnIndex === 0) {
+      return rows.find((row) => row[0].trim() === normalized) ?? null;
+    }
+
+    const numeric = Number(normalized);
+    if (!Number.isFinite(numeric)) return null;
+    return rows.find((row) => {
+      const candidate = Number(row[columnIndex]);
+      return Number.isFinite(candidate) && Math.abs(candidate - numeric) < 0.0005;
+    }) ?? null;
+  };
+
   const updateRow = (rowIndex: number, columnIndex: number, value: string) => {
     setSelectedRow(rowIndex);
+    const match = findMatchingPipe(columnIndex, value);
     setRows((current) =>
-      current.map((row, index) =>
-        index === rowIndex ? row.map((cell, column) => column === columnIndex ? value : cell) : row
-      )
+      current.map((row, index) => {
+        if (index !== rowIndex) return row;
+        if (match) return [...match];
+        return row.map((cell, column) => column === columnIndex ? value : cell);
+      })
     );
   };
 
@@ -1673,35 +1692,35 @@ export default function App() {
     AsyncStorage.setItem(SAVED_NOTES_KEY, savedNotes).catch(() => {});
   }, [savedNotes, savedNotesLoaded]);
 
-  const isSaved = (item: SavedItem) =>
-    savedItems.some((saved) => saved.signature === item.signature);
+  const isSaved = (item: SavedItem) => {
+    const groupedIds = new Set(projects.flatMap((project) => project.itemIds));
+    return savedItems.some(
+      (saved) => saved.signature === item.signature && !groupedIds.has(saved.id)
+    );
+  };
+
+  const freshSaveCopy = (item: SavedItem): SavedItem => ({
+    ...item,
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  });
 
   const toggleSave = (item: SavedItem) => {
-    const existing = savedItems.find((saved) => saved.signature === item.signature);
-    if (existing) {
-      setSavedItems((current) => current.filter((saved) => saved.id !== existing.id));
-      setProjects((current) =>
-        current.map((project) => ({
-          ...project,
-          itemIds: project.itemIds.filter((id) => id !== existing.id),
-        }))
-      );
-      return;
-    }
-    setPendingSave(item);
+    setPendingSave(freshSaveCopy(item));
   };
 
   const saveIndividual = (item: SavedItem) => {
-    setSavedItems((current) => [item, ...current]);
+    const copy = freshSaveCopy(item);
+    setSavedItems((current) => [copy, ...current]);
     setPendingSave(null);
   };
 
   const addToExistingProject = (item: SavedItem, projectId: string) => {
-    setSavedItems((current) => [item, ...current]);
+    const copy = freshSaveCopy(item);
+    setSavedItems((current) => [copy, ...current]);
     setProjects((current) =>
       current.map((project) =>
         project.id === projectId
-          ? { ...project, itemIds: [...project.itemIds, item.id] }
+          ? { ...project, itemIds: [...project.itemIds, copy.id] }
           : project
       )
     );
@@ -1716,12 +1735,13 @@ export default function App() {
       .filter(Number.isFinite);
     const nextUntitled = usedUntitled.length ? Math.max(...usedUntitled) + 1 : 1;
     const name = requestedName || `Untitled ${nextUntitled}`;
+    const copy = freshSaveCopy(item);
     const project: SavedProject = {
       id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name,
-      itemIds: [item.id],
+      itemIds: [copy.id],
     };
-    setSavedItems((current) => [item, ...current]);
+    setSavedItems((current) => [copy, ...current]);
     setProjects((current) => [project, ...current]);
     setPendingSave(null);
   };
