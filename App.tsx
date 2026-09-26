@@ -2030,7 +2030,7 @@ function WeldingSymbolsScreen({
             <View key={item.name} style={styles.weldSymbolCard}>
               <Pressable
                 onPress={() => toggleExpanded(item.name)}
-                style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', flex: 1 }, pressed && styles.pressed]}
+                style={({ pressed }) => [styles.weldSymbolHeader, pressed && styles.pressed]}
               >
                 <View style={styles.weldSymbolMarkBox}>
                   <Text style={styles.weldSymbolMark}>{item.mark}</Text>
@@ -2043,7 +2043,7 @@ function WeldingSymbolsScreen({
               </Pressable>
 
               {expanded ? (
-                <View style={{ width: '100%', marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: BORDER }}>
+                <View style={styles.weldSymbolExpanded}>
                   <View style={styles.symbolInfoSection}>
                     <Text style={styles.symbolInfoLabel}>Typical use</Text>
                     <Text style={styles.symbolInfoValue}>{item.use}</Text>
@@ -4396,15 +4396,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  weldSymbolHeader: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
+  },
+  weldSymbolExpanded: {
+    width: '100%',
+    marginTop: 16,
+    paddingTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
   },
   weldSymbolMarkBox: {
-    width: 54,
-    height: 48,
+    width: 72,
+    height: 68,
     borderRadius: 8,
     backgroundColor: PANEL_DARK,
     borderWidth: 1,
@@ -4414,7 +4424,7 @@ const styles = StyleSheet.create({
   },
   weldSymbolMark: {
     color: YELLOW,
-    fontSize: 25,
+    fontSize: 32,
     fontWeight: '900',
   },
   weldSymbolName: {
