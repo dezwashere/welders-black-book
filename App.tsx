@@ -149,7 +149,7 @@ const metals = [
   {
     name: 'Aluminum',
     spriteY: 0,
-    image: wikiImage('Solid Aluminum Plate.png'),
+    image: wikiImage('Aluminum sheet info.jpg'),
     description: 'Lightweight nonferrous metal with a silver-gray oxide layer that reforms quickly after cleaning.',
     welding: 'Typically welded with MIG or AC TIG using aluminum-compatible filler.',
     note: 'Remove oxide and contamination immediately before welding for best results.',
@@ -157,7 +157,7 @@ const metals = [
   {
     name: 'Cast Iron',
     spriteY: 45,
-    image: wikiImage('Cast iron sample.jpg'),
+    image: wikiImage('Grey textured cast finish clean rough seamless metal sheet surface texture.jpg'),
     description: 'High-carbon iron alloy commonly found in cast housings, machinery, cookware, and older components.',
     welding: 'Repair welding often uses nickel-based filler and controlled preheat/cooling procedures.',
     note: 'Identify the casting and repair requirements before welding; cracking risk can be significant.',
@@ -220,14 +220,14 @@ const conditions = [
     name: 'Moderate Rust',
     spriteY: 216,
     desc: 'Visible rust and scale.',
-    image: wikiImage('Free Texture Rusty Metal (22819583).jpeg'),
+    image: wikiImage('Rusty metal sheet (Amal Kumar via Poly Haven).png'),
     prep: 'Mechanically remove rust and scale around the joint. Recheck remaining thickness before welding.',
   },
   {
     name: 'Heavy Rust',
     spriteY: 108,
     desc: 'Thick rust, pitting, or material loss.',
-    image: wikiImage('Orange Rusted Metal Texture (6648763107).jpg'),
+    image: wikiImage('Rust texture.jpg'),
     prep: 'Do not weld over heavy corrosion. Clean to sound metal and verify that enough base material remains for a safe repair.',
   },
   {
@@ -751,14 +751,18 @@ function MetalScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
           >
-            <SpriteCrop
-              source={APPROVED_METAL_SPRITE}
-              width={62}
-              height={45}
-              spriteHeight={315}
-              y={metal.spriteY}
-              style={styles.referencePhoto}
-            />
+            {metal.name === 'Aluminum' || metal.name === 'Cast Iron' ? (
+              <Image source={{ uri: metal.image }} style={styles.referencePhoto} resizeMode="cover" />
+            ) : (
+              <SpriteCrop
+                source={APPROVED_METAL_SPRITE}
+                width={62}
+                height={45}
+                spriteHeight={315}
+                y={metal.spriteY}
+                style={styles.referencePhoto}
+              />
+            )}
             <Text style={styles.referenceTitle}>{metal.name}</Text>
             <Ionicons name="chevron-forward" size={22} color={TEXT} />
           </Pressable>
@@ -819,14 +823,18 @@ function ConditionScreen({
             onPress={() => onSelect(index)}
             style={({ pressed }) => [styles.conditionRow, pressed && styles.pressed]}
           >
-            <SpriteCrop
-              source={APPROVED_CONDITION_SPRITE}
-              width={83}
-              height={54}
-              spriteHeight={324}
-              y={condition.spriteY}
-              style={styles.conditionPhoto}
-            />
+            {condition.name === 'Moderate Rust' || condition.name === 'Heavy Rust' ? (
+              <Image source={{ uri: condition.image }} style={styles.conditionPhoto} resizeMode="cover" />
+            ) : (
+              <SpriteCrop
+                source={APPROVED_CONDITION_SPRITE}
+                width={83}
+                height={54}
+                spriteHeight={324}
+                y={condition.spriteY}
+                style={styles.conditionPhoto}
+              />
+            )}
             <View style={{ flex: 1 }}>
               <Text style={styles.referenceTitle}>{condition.name}</Text>
               <Text style={styles.referenceSub}>{condition.desc}</Text>
