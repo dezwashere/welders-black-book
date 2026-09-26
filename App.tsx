@@ -2110,28 +2110,56 @@ function WeldingSymbolsScreen({
 
 function MetalScreen({
   onBack,
-  onSelect,
+  isSaved,
+  onToggleSave,
 }: {
   onBack: () => void;
-  onSelect: (index: number) => void;
+  isSaved: (item: SavedItem) => boolean;
+  onToggleSave: (item: SavedItem) => void;
 }) {
+  const [expandedNames, setExpandedNames] = useState<string[]>([]);
+  const toggleExpanded = (name: string) => {
+    setExpandedNames((current) =>
+      current.includes(name) ? current.filter((entry) => entry !== name) : [...current, name]
+    );
+  };
+
   return (
     <>
       <Header title="METAL REFERENCE" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        {metals.map((metal, index) => (
-          <Pressable
-            key={metal.name}
-            onPress={() => onSelect(index)}
-            style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.referenceTitle}>{metal.name}</Text>
-              <Text style={styles.referenceSub}>{metal.description}</Text>
+        {metals.map((metal, index) => {
+          const expanded = expandedNames.includes(metal.name);
+          const savedItem = makeSavedItem('metal', metal.name, 'Metal reference', { index, metal: metal.name });
+          return (
+            <View key={metal.name} style={styles.weldSymbolCard}>
+              <Pressable
+                onPress={() => toggleExpanded(metal.name)}
+                style={({ pressed }) => [styles.weldSymbolHeader, pressed && styles.pressed]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.referenceTitle}>{metal.name}</Text>
+                  <Text style={styles.referenceSub}>{metal.description}</Text>
+                </View>
+                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={22} color={TEXT} />
+              </Pressable>
+              {expanded ? (
+                <View style={styles.weldSymbolExpanded}>
+                  <View style={styles.symbolInfoSection}>
+                    <Text style={styles.symbolInfoLabel}>Welding</Text>
+                    <Text style={styles.symbolInfoValue}>{metal.welding}</Text>
+                  </View>
+                  <View style={styles.symbolInfoDivider} />
+                  <View style={styles.symbolInfoSection}>
+                    <Text style={styles.symbolInfoLabel}>Prep / Notes</Text>
+                    <Text style={styles.symbolInfoValue}>{metal.note}</Text>
+                  </View>
+                  <SaveButton saved={isSaved(savedItem)} onPress={() => onToggleSave(savedItem)} />
+                </View>
+              ) : null}
             </View>
-            <Ionicons name="chevron-forward" size={22} color={TEXT} />
-          </Pressable>
-        ))}
+          );
+        })}
       </ScrollView>
     </>
   );
@@ -2139,13 +2167,21 @@ function MetalScreen({
 
 function ThicknessScreen({
   onBack,
-  onSelect,
+  isSaved,
+  onToggleSave,
 }: {
   onBack: () => void;
-  onSelect: (index: number, unitSystem: 'US' | 'EU') => void;
+  isSaved: (item: SavedItem) => boolean;
+  onToggleSave: (item: SavedItem) => void;
 }) {
   const [unitSystem, setUnitSystem] = useState<'US' | 'EU'>('US');
+  const [expandedLabels, setExpandedLabels] = useState<string[]>([]);
   const items = unitSystem === 'EU' ? metricThicknesses : thicknesses;
+  const toggleExpanded = (label: string) => {
+    setExpandedLabels((current) =>
+      current.includes(label) ? current.filter((entry) => entry !== label) : [...current, label]
+    );
+  };
 
   return (
     <>
@@ -2166,8 +2202,7 @@ function ThicknessScreen({
             <Text style={styles.weldGuideTitle}>US STEEL SHEET GAUGE</Text>
             <Text style={styles.weldGuideBody}>Gauge thickness here is for common steel sheet reference. Aluminum, stainless and other materials can use different gauge-to-thickness conventions; use the actual measured thickness when it matters.</Text>
           </View>
-        ) : null}
-        {unitSystem === 'EU' ? (
+        ) : (
           <View style={styles.metricModeBanner}>
             <Ionicons name="information-circle-outline" size={20} color={BLACK} />
             <View style={{ flex: 1 }}>
@@ -2175,28 +2210,61 @@ function ThicknessScreen({
               <Text style={styles.metricModeText}>Metric sheet and plate are specified directly by thickness in millimetres rather than US sheet gauge.</Text>
             </View>
           </View>
-        ) : null}
+        )}
 
         {items.map((item, index) => {
           const mm = parseFloat(item.mm);
           const visualHeight = Math.max(2, Math.min(38, 2 + mm * 2.8));
+          const expansionKey = unitSystem + ':' + item.label;
+          const expanded = expandedLabels.includes(expansionKey);
+          const savedItem = makeSavedItem(
+            'thickness',
+            item.label,
+            item.value,
+            { index, unitSystem, thickness: item.label, decimal: item.inches, metric: item.mm }
+          );
           return (
-            <Pressable
-              key={item.label}
-              onPress={() => onSelect(index, unitSystem)}
-              style={({ pressed }) => [styles.referenceRow, pressed && styles.pressed]}
-            >
-              <View style={styles.thicknessReferenceVisual}>
-                <View style={[styles.thicknessReferencePlate, { height: visualHeight }]}>
-                  <View style={styles.thicknessReferenceHighlight} />
+            <View key={expansionKey} style={styles.weldSymbolCard}>
+              <Pressable
+                onPress={() => toggleExpanded(expansionKey)}
+                style={({ pressed }) => [styles.weldSymbolHeader, pressed && styles.pressed]}
+              >
+                <View style={styles.thicknessReferenceVisual}>
+                  <View style={[styles.thicknessReferencePlate, { height: visualHeight }]}>
+                    <View style={styles.thicknessReferenceHighlight} />
+                  </View>
                 </View>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.referenceTitle}>{item.label}</Text>
-                <Text style={styles.referenceSub}>{unitSystem === 'EU' ? `${item.mm} · ${item.inches}` : item.value}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={22} color={TEXT} />
-            </Pressable>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.referenceTitle}>{item.label}</Text>
+                  <Text style={styles.referenceSub}>{unitSystem === 'EU' ? `${item.mm} · ${item.inches}` : item.value}</Text>
+                </View>
+                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={22} color={TEXT} />
+              </Pressable>
+              {expanded ? (
+                <View style={styles.weldSymbolExpanded}>
+                  <View style={styles.symbolInfoSection}>
+                    <Text style={styles.symbolInfoLabel}>Nominal</Text>
+                    <Text style={styles.symbolInfoValue}>{item.label}</Text>
+                  </View>
+                  <View style={styles.symbolInfoDivider} />
+                  <View style={styles.symbolInfoSection}>
+                    <Text style={styles.symbolInfoLabel}>Decimal</Text>
+                    <Text style={styles.symbolInfoValue}>{item.inches}</Text>
+                  </View>
+                  <View style={styles.symbolInfoDivider} />
+                  <View style={styles.symbolInfoSection}>
+                    <Text style={styles.symbolInfoLabel}>Metric</Text>
+                    <Text style={styles.symbolInfoValue}>{item.mm}</Text>
+                  </View>
+                  <View style={styles.symbolInfoDivider} />
+                  <View style={styles.symbolInfoSection}>
+                    <Text style={styles.symbolInfoLabel}>Welding note</Text>
+                    <Text style={styles.symbolInfoValue}>{item.note}</Text>
+                  </View>
+                  <SaveButton saved={isSaved(savedItem)} onPress={() => onToggleSave(savedItem)} />
+                </View>
+              ) : null}
+            </View>
           );
         })}
       </ScrollView>
@@ -2206,28 +2274,51 @@ function ThicknessScreen({
 
 function ConditionScreen({
   onBack,
-  onSelect,
+  isSaved,
+  onToggleSave,
 }: {
   onBack: () => void;
-  onSelect: (index: number) => void;
+  isSaved: (item: SavedItem) => boolean;
+  onToggleSave: (item: SavedItem) => void;
 }) {
+  const [expandedNames, setExpandedNames] = useState<string[]>([]);
+  const toggleExpanded = (name: string) => {
+    setExpandedNames((current) =>
+      current.includes(name) ? current.filter((entry) => entry !== name) : [...current, name]
+    );
+  };
+
   return (
     <>
       <Header title="RUST / CONDITION" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
-        {conditions.map((condition, index) => (
-          <Pressable
-            key={condition.name}
-            onPress={() => onSelect(index)}
-            style={({ pressed }) => [styles.conditionRow, pressed && styles.pressed]}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.referenceTitle}>{condition.name}</Text>
-              <Text style={styles.referenceSub}>{condition.desc}</Text>
+        {conditions.map((condition, index) => {
+          const expanded = expandedNames.includes(condition.name);
+          const savedItem = makeSavedItem('condition', condition.name, condition.desc, { index, condition: condition.name });
+          return (
+            <View key={condition.name} style={styles.weldSymbolCard}>
+              <Pressable
+                onPress={() => toggleExpanded(condition.name)}
+                style={({ pressed }) => [styles.weldSymbolHeader, pressed && styles.pressed]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.referenceTitle}>{condition.name}</Text>
+                  <Text style={styles.referenceSub}>{condition.desc}</Text>
+                </View>
+                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={22} color={TEXT} />
+              </Pressable>
+              {expanded ? (
+                <View style={styles.weldSymbolExpanded}>
+                  <View style={styles.symbolInfoSection}>
+                    <Text style={styles.symbolInfoLabel}>Prep / Notes</Text>
+                    <Text style={styles.symbolInfoValue}>{condition.prep}</Text>
+                  </View>
+                  <SaveButton saved={isSaved(savedItem)} onPress={() => onToggleSave(savedItem)} />
+                </View>
+              ) : null}
             </View>
-            <Ionicons name="chevron-forward" size={22} color={TEXT} />
-          </Pressable>
-        ))}
+          );
+        })}
       </ScrollView>
     </>
   );
@@ -2716,10 +2807,17 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <MetalScreen
           onBack={goHome}
-          onSelect={(index) => {
-            setSelectedMetal(index);
-            setScreen('metalDetail');
-          }}
+          isSaved={isSaved}
+          onToggleSave={toggleSave}
+        />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
         />
       </SafeAreaView>
     );
@@ -2752,11 +2850,17 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <ThicknessScreen
           onBack={goHome}
-          onSelect={(index, unitSystem) => {
-            setSelectedThickness(index);
-            setSelectedThicknessUnit(unitSystem);
-            setScreen('thicknessDetail');
-          }}
+          isSaved={isSaved}
+          onToggleSave={toggleSave}
+        />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
         />
       </SafeAreaView>
     );
@@ -2790,10 +2894,17 @@ export default function App() {
       <SafeAreaView style={styles.safe}>
         <ConditionScreen
           onBack={goHome}
-          onSelect={(index) => {
-            setSelectedCondition(index);
-            setScreen('conditionDetail');
-          }}
+          isSaved={isSaved}
+          onToggleSave={toggleSave}
+        />
+        <SaveToProjectModal
+          visible={Boolean(pendingSave)}
+          item={pendingSave}
+          projects={projects}
+          onClose={() => setPendingSave(null)}
+          onSaveIndividual={saveIndividual}
+          onAddExisting={addToExistingProject}
+          onCreateProject={createProjectAndSave}
         />
       </SafeAreaView>
     );
