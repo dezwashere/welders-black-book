@@ -2466,6 +2466,31 @@ export default function App() {
   const [pendingSave, setPendingSave] = useState<SavedItem | null>(null);
   const [savedNotes, setSavedNotes] = useState('');
   const [savedNotesLoaded, setSavedNotesLoaded] = useState(false);
+  const [iconPickerVisible, setIconPickerVisible] = useState(false);
+  const [activeAppIcon, setActiveAppIcon] = useState<string | null>(null);
+  const [changingAppIcon, setChangingAppIcon] = useState(false);
+
+  const changeAppIcon = async (name: 'AmericanFlag' | 'Camo' | null) => {
+    if (Platform.OS !== 'ios') {
+      Alert.alert('iPhone only', 'Alternate app icons are currently available on iPhone.');
+      return;
+    }
+    try {
+      setChangingAppIcon(true);
+      const alternateIcons = require('expo-alternate-app-icons');
+      if (!alternateIcons.supportsAlternateIcons) {
+        Alert.alert('New build required', 'App icon switching works in the TestFlight/App Store build, not Expo Go.');
+        return;
+      }
+      await alternateIcons.setAlternateAppIcon(name);
+      setActiveAppIcon(name);
+      setIconPickerVisible(false);
+    } catch {
+      Alert.alert('Could not change icon', 'This feature requires the native TestFlight/App Store build.');
+    } finally {
+      setChangingAppIcon(false);
+    }
+  };
   const goHome = () => {
     setOpenedSaved(null);
     setScreen('home');
@@ -2984,8 +3009,69 @@ export default function App() {
             <Text style={styles.brand}>WELDER’S</Text>
             <Text style={styles.brand}>BLACK BOOK</Text>
           </View>
-
+          <Pressable
+            onPress={() => setIconPickerVisible(true)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Choose app icon"
+            style={({ pressed }) => [styles.appIconButton, pressed && styles.pressed]}
+          >
+            <Ionicons name="apps-outline" size={24} color={YELLOW} />
+          </Pressable>
         </View>
+
+        <Modal
+          visible={iconPickerVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIconPickerVisible(false)}
+        >
+          <Pressable style={styles.iconPickerBackdrop} onPress={() => setIconPickerVisible(false)}>
+            <Pressable style={styles.iconPickerCard} onPress={() => {}}>
+              <View style={styles.iconPickerHeader}>
+                <View>
+                  <Text style={styles.iconPickerTitle}>APP ICON</Text>
+                  <Text style={styles.iconPickerSubtitle}>Choose your Welder’s Black Book icon.</Text>
+                </View>
+                <Pressable onPress={() => setIconPickerVisible(false)} hitSlop={10}>
+                  <Ionicons name="close" size={26} color={TEXT} />
+                </Pressable>
+              </View>
+              {[
+                { name: null, label: 'Default' },
+                { name: 'AmericanFlag', label: 'American Flag' },
+                { name: 'Camo', label: 'Camo' },
+              ].map((option) => {
+                const selected = activeAppIcon === option.name;
+                return (
+                  <Pressable
+                    key={option.label}
+                    disabled={changingAppIcon}
+                    onPress={() => changeAppIcon(option.name as 'AmericanFlag' | 'Camo' | null)}
+                    style={({ pressed }) => [
+                      styles.iconPickerOption,
+                      selected && styles.iconPickerOptionSelected,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <View style={styles.iconPickerOptionIcon}>
+                      <Ionicons
+                        name={option.name === 'AmericanFlag' ? 'flag-outline' : option.name === 'Camo' ? 'leaf-outline' : 'hammer-outline'}
+                        size={25}
+                        color={selected ? BLACK : YELLOW}
+                      />
+                    </View>
+                    <Text style={[styles.iconPickerOptionText, selected && styles.iconPickerOptionTextSelected]}>
+                      {option.label}
+                    </Text>
+                    {selected ? <Ionicons name="checkmark-circle" size={23} color={BLACK} /> : null}
+                  </Pressable>
+                );
+              })}
+              <Text style={styles.iconPickerNote}>Changes the actual iPhone home-screen icon.</Text>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <Pressable
           onPress={() => setScreen('saved')}
@@ -3093,6 +3179,83 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     paddingTop: 4,
+  },
+  appIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: PANEL,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconPickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.78)',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+  },
+  iconPickerCard: {
+    backgroundColor: PANEL,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 18,
+  },
+  iconPickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 16,
+  },
+  iconPickerTitle: {
+    color: TEXT,
+    fontSize: 21,
+    fontWeight: '900',
+  },
+  iconPickerSubtitle: {
+    color: MUTED,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  iconPickerOption: {
+    minHeight: 58,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: PANEL_DARK,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  iconPickerOptionSelected: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW_DARK,
+  },
+  iconPickerOptionIcon: {
+    width: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconPickerOptionText: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  iconPickerOptionTextSelected: {
+    color: BLACK,
+  },
+  iconPickerNote: {
+    color: MUTED,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 5,
   },
   homeButton: {
     minHeight: 74,
