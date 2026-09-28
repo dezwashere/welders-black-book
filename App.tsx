@@ -605,6 +605,7 @@ function SavedScreen({
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [notesMenuOpen, setNotesMenuOpen] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(savedNotes[0]?.id ?? null);
+  const [editingNoteTitle, setEditingNoteTitle] = useState(false);
 
   useEffect(() => {
     if (savedNotes.length === 0) {
@@ -640,13 +641,6 @@ function SavedScreen({
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.savedNotesSectionHeader}>
           <Text style={styles.savedSectionTitle}>NOTES</Text>
-          <Pressable
-            onPress={createAndSelectNote}
-            style={({ pressed }) => [styles.addNoteButton, pressed && styles.pressed]}
-          >
-            <Ionicons name="add" size={18} color={BLACK} />
-            <Text style={styles.addNoteButtonText}>NEW NOTE</Text>
-          </Pressable>
         </View>
 
         {savedNotes.length === 0 ? (
@@ -673,6 +667,13 @@ function SavedScreen({
 
             {notesMenuOpen ? (
               <View style={styles.notesDropdownMenu}>
+                <Pressable
+                  onPress={createAndSelectNote}
+                  style={({ pressed }) => [styles.notesDropdownNewNote, pressed && styles.pressed]}
+                >
+                  <Ionicons name="add-circle-outline" size={19} color={BLACK} />
+                  <Text style={styles.notesDropdownNewNoteText}>NEW NOTE</Text>
+                </Pressable>
                 {savedNotes.map((note) => {
                   const active = note.id === selectedNote?.id;
                   return (
@@ -709,16 +710,37 @@ function SavedScreen({
             {selectedNote ? (
               <View style={styles.savedNotepadCard}>
                 <View style={styles.noteTitleRow}>
-                  <TextInput
-                    value={selectedNote.title}
-                    onChangeText={(title) => onUpdateNote(selectedNote.id, { title })}
-                    placeholder="Note label"
-                    placeholderTextColor="#777"
-                    style={styles.noteTitleInput}
-                    returnKeyType="done"
-                  />
+                  {editingNoteTitle ? (
+                    <TextInput
+                      value={selectedNote.title}
+                      onChangeText={(title) => onUpdateNote(selectedNote.id, { title })}
+                      onBlur={() => setEditingNoteTitle(false)}
+                      onSubmitEditing={() => setEditingNoteTitle(false)}
+                      placeholder="Note label"
+                      placeholderTextColor="#777"
+                      style={styles.noteTitleInput}
+                      returnKeyType="done"
+                      autoFocus
+                      selectTextOnFocus
+                    />
+                  ) : (
+                    <Pressable
+                      onPress={() => setEditingNoteTitle(true)}
+                      style={({ pressed }) => [styles.noteTitleDisplay, pressed && styles.pressed]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Edit note label"
+                    >
+                      <Text style={styles.noteTitleDisplayText} numberOfLines={1}>
+                        {selectedNote.title.trim() || 'Untitled note'}
+                      </Text>
+                      <Ionicons name="pencil-outline" size={17} color={YELLOW} />
+                    </Pressable>
+                  )}
                   <Pressable
-                    onPress={() => onDeleteNote(selectedNote.id)}
+                    onPress={() => {
+                      setEditingNoteTitle(false);
+                      onDeleteNote(selectedNote.id);
+                    }}
                     hitSlop={8}
                     style={({ pressed }) => [styles.noteDeleteButton, pressed && styles.pressed]}
                     accessibilityRole="button"
@@ -4506,11 +4528,29 @@ const styles = StyleSheet.create({
     backgroundColor: PANEL_DARK,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: YELLOW,
     color: TEXT,
     fontSize: 16,
     fontWeight: '900',
     paddingHorizontal: 11,
+  },
+  noteTitleDisplay: {
+    flex: 1,
+    minHeight: 42,
+    backgroundColor: PANEL_DARK,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  noteTitleDisplayText: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 16,
+    fontWeight: '900',
   },
   noteDeleteButton: {
     width: 42,
@@ -4554,6 +4594,21 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     padding: 6,
     marginBottom: 8,
+  },
+  notesDropdownNewNote: {
+    minHeight: 46,
+    borderRadius: 7,
+    backgroundColor: YELLOW,
+    paddingHorizontal: 10,
+    marginBottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  notesDropdownNewNoteText: {
+    color: BLACK,
+    fontSize: 14,
+    fontWeight: '900',
   },
   notesDropdownOption: {
     minHeight: 46,
