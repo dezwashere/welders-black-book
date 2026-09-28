@@ -605,11 +605,13 @@ function SavedScreen({
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [notesMenuOpen, setNotesMenuOpen] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [noteEditorOpen, setNoteEditorOpen] = useState(false);
   const [editingNoteTitle, setEditingNoteTitle] = useState(false);
 
   useEffect(() => {
     if (selectedNoteId && !savedNotes.some((note) => note.id === selectedNoteId)) {
       setSelectedNoteId(null);
+      setNoteEditorOpen(false);
       setEditingNoteTitle(false);
     }
     if (savedNotes.length === 0) setNotesMenuOpen(false);
@@ -620,6 +622,8 @@ function SavedScreen({
   const createAndSelectNote = () => {
     const id = onAddNote();
     setSelectedNoteId(id);
+    setNoteEditorOpen(true);
+    setEditingNoteTitle(true);
     setNotesMenuOpen(false);
   };
 
@@ -665,6 +669,7 @@ function SavedScreen({
                 key={note.id}
                 onPress={() => {
                   setSelectedNoteId(note.id);
+                  setNoteEditorOpen(true);
                   setEditingNoteTitle(false);
                   setNotesMenuOpen(false);
                 }}
@@ -679,7 +684,7 @@ function SavedScreen({
           </View>
         ) : null}
 
-        {selectedNote ? (
+        {noteEditorOpen && selectedNote ? (
           <View style={styles.savedNotepadCard}>
             <View style={styles.noteTitleRow}>
               {editingNoteTitle ? (
@@ -711,6 +716,7 @@ function SavedScreen({
               <Pressable
                 onPress={() => {
                   setEditingNoteTitle(false);
+                  setNoteEditorOpen(false);
                   setSelectedNoteId(null);
                   onDeleteNote(selectedNote.id);
                 }}
