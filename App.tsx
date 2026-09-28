@@ -156,19 +156,6 @@ const enPipeData: { dn: string; odMm: number; wallsMm: number[] }[] = [
   { dn: '300', odMm: 323.9, wallsMm: [5.6, 6.3, 7.1, 8.0, 8.8, 10.0, 11.0, 12.5, 14.2, 16.0] },
 ];
 
-const auPipeData: { dn: string; odMm: number; wallsMm: number[] }[] = [
-  { dn: '150', odMm: 168.3, wallsMm: [4.8, 6.4, 7.1, 11.0] },
-  { dn: '200', odMm: 219.1, wallsMm: [4.8, 6.4, 8.2, 12.7] },
-  { dn: '250', odMm: 273.1, wallsMm: [4.8, 6.4, 9.3, 12.7] },
-  { dn: '300', odMm: 323.9, wallsMm: [6.4, 7.1, 9.5, 12.7] },
-  { dn: '350', odMm: 355.6, wallsMm: [6.4, 9.5, 12.7, 15.9] },
-  { dn: '400', odMm: 406.4, wallsMm: [6.4, 9.5, 12.7, 15.9] },
-  { dn: '450', odMm: 457.0, wallsMm: [6.4, 9.5, 12.7, 15.9] },
-  { dn: '500', odMm: 508.0, wallsMm: [6.4, 9.5, 12.7, 15.9] },
-  { dn: '550', odMm: 559.0, wallsMm: [12.5, 16.0] },
-  { dn: '600', odMm: 610.0, wallsMm: [6.4, 9.5, 12.7, 15.9, 17.48] },
-];
-
 const fallbackPipes = [
   ['1/8', '0.405', '0.269'],
   ['1/4', '0.540', '0.364'],
@@ -190,7 +177,6 @@ const wikiImage = (file: string) =>
 const APPROVED_METAL_SPRITE = require('./assets/reference/metal-approved.png');
 const APPROVED_CONDITION_SPRITE = require('./assets/reference/condition-approved.jpg');
 const APPROVED_THICKNESS = require('./assets/reference/thickness-approved.png');
-const AU_KANGAROO_WELDER = require('./assets/kangaroo-welder.png');
 
 function SpriteCrop({
   source,
@@ -1208,19 +1194,17 @@ function PipeScreen({
   const [standardFamily, setStandardFamily] = useState(String(initial?.payload.standard ?? 'ASME B36.10'));
   const [enDn, setEnDn] = useState(String(initial?.payload.dn ?? '50'));
   const [enWall, setEnWall] = useState(String(initial?.payload.wallMm ?? '3.6'));
-  const [auDn, setAuDn] = useState(String(initial?.payload.dn ?? '150'));
-  const [auWall, setAuWall] = useState(String(initial?.payload.wallMm ?? '4.8'));
   const [nps, setNps] = useState(String(initial?.payload.nps ?? '2'));
   const [schedule, setSchedule] = useState(String(initial?.payload.schedule ?? '40'));
   const [tubeOd, setTubeOd] = useState(String(initial?.payload.od ?? '1.000'));
   const [tubeWall, setTubeWall] = useState(String(initial?.payload.wall ?? '0.065'));
   const [slipOd, setSlipOd] = useState(String(initial?.payload.od ?? '2.375'));
   const [clearance, setClearance] = useState(String(initial?.payload.clearance ?? '0.020'));
-  const pipeUnit = region === 'US' ? 'in' : 'mm';
+  const pipeUnit = region === 'EU' ? 'mm' : 'in';
   const changeRegion = (next: string) => {
     if (next === region) return;
-    const currentIsMetric = region !== 'US';
-    const nextIsMetric = next !== 'US';
+    const currentIsMetric = region === 'EU';
+    const nextIsMetric = next === 'EU';
     if (tab !== 0 && currentIsMetric !== nextIsMetric) {
       const factor = nextIsMetric ? 25.4 : 1 / 25.4;
       const digits = nextIsMetric ? 2 : 3;
@@ -1255,11 +1239,6 @@ function PipeScreen({
   const activeEnWall = enWallOptions.includes(enWall) ? Number(enWall) : enStandard.wallsMm[0];
   const enId = (enStandard.odMm - (2 * activeEnWall)).toFixed(1);
 
-  const auStandard = auPipeData.find((pipe) => pipe.dn === auDn) ?? auPipeData[0];
-  const auWallOptions = auStandard.wallsMm.map((value) => String(value));
-  const activeAuWall = auWallOptions.includes(auWall) ? Number(auWall) : auStandard.wallsMm[0];
-  const auId = (auStandard.odMm - (2 * activeAuWall)).toFixed(1);
-
   const customOdNumber = region === 'EU' ? Number(tubeOd) : parseMeasurement(tubeOd);
   const customWallNumber = region === 'EU' ? Number(tubeWall) : parseMeasurement(tubeWall);
   const customId =
@@ -1282,14 +1261,7 @@ function PipeScreen({
           `OD ${enStandard.odMm} mm · Wall ${activeEnWall} mm · ID ${enId} mm`,
           { mode: 'standard', region: 'EU', standard: 'EN 10220', dn: enDn, odMm: enStandard.odMm, wallMm: activeEnWall, idMm: enId }
         )
-      : region === 'AU'
-        ? makeSavedItem(
-            'pipe',
-            `AU/NZ · DN ${auDn}`,
-            `OD ${auStandard.odMm} mm · Wall ${activeAuWall} mm · ID ${auId} mm`,
-            { mode: 'standard', region: 'AU', standard: 'AU/NZ ERW stock reference', dn: auDn, odMm: auStandard.odMm, wallMm: activeAuWall, idMm: auId }
-          )
-        : makeSavedItem(
+      : makeSavedItem(
             'pipe',
             `NPS ${nps}" · Sch ${activeSchedule}`,
             `OD ${standard.od.toFixed(3)}" · Wall ${wall.toFixed(3)}" · ID ${standardId}"`,
@@ -1311,7 +1283,7 @@ function PipeScreen({
 
   return (
     <>
-      <Header title={region === 'EU' ? 'PIPE SIZES · METRIC' : region === 'AU' ? 'PIPE SIZES · AU/NZ' : 'PIPE SIZES'} onBack={onBack} />
+      <Header title={region === 'EU' ? 'PIPE SIZES · METRIC' : 'PIPE SIZES'} onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Segment labels={['PIPE', 'TUBE / CUSTOM', 'SLIP FIT']} active={tab} onChange={setTab} />
 
@@ -1323,10 +1295,6 @@ function PipeScreen({
           <Pressable onPress={() => changeRegion('EU')} style={[styles.pipeRegionButton, region === 'EU' && styles.pipeRegionButtonActive]}>
             <Text style={[styles.pipeRegionText, region === 'EU' && styles.pipeRegionTextActive]}>EU / METRIC</Text>
             <Text style={[styles.pipeRegionSub, region === 'EU' && styles.pipeRegionTextActive]}>{tab === 0 ? 'EN 10220 · DN + mm' : 'millimetres'}</Text>
-          </Pressable>
-          <Pressable onPress={() => changeRegion('AU')} style={[styles.pipeRegionButton, region === 'AU' && styles.pipeRegionButtonActive]}>
-            <Text style={[styles.pipeRegionText, region === 'AU' && styles.pipeRegionTextActive]}>AU / NZ</Text>
-            <Text style={[styles.pipeRegionSub, region === 'AU' && styles.pipeRegionTextActive]}>{tab === 0 ? 'DN + mm' : 'millimetres'}</Text>
           </Pressable>
         </View>
         {tab === 0 ? (
@@ -1361,25 +1329,6 @@ function PipeScreen({
                   <InfoLine label="Inside Diameter" value={`${standardId} in`} />
                 </View>
               </>
-            ) : region === 'AU' ? (
-              <>
-                <View style={[styles.metricModeBanner, styles.auModeBanner]}>
-                  <Image pointerEvents="none" source={AU_KANGAROO_WELDER} resizeMode="contain" style={styles.auKangarooWatermark} />
-                  <Ionicons name="information-circle-outline" size={20} color={BLACK} style={styles.auModeForeground} />
-                  <View style={[{ flex: 1 }, styles.auModeForeground]}>
-                    <Text style={styles.metricModeTitle}>AU / NZ METRIC PIPE</Text>
-                    <Text style={styles.metricModeText}>Common Australian ERW stock dimensions in millimetres. Verify the project specification and manufacturer data; structural hollow sections are commonly specified under AS/NZS 1163.</Text>
-                  </View>
-                </View>
-                <Text style={styles.pipeReferenceNote}>AUSTRALIA / NEW ZEALAND PIPE</Text>
-                <SelectorRow label="DN / NOMINAL DIAMETER" value={auDn} options={auPipeData.map((pipe) => pipe.dn)} onChange={setAuDn} />
-                <SelectorRow label="WALL THICKNESS (MM)" value={String(activeAuWall)} options={auWallOptions} onChange={setAuWall} />
-                <View style={styles.infoCard}>
-                  <InfoLine label="Outside Diameter" value={`${auStandard.odMm} mm`} />
-                  <InfoLine label="Wall Thickness" value={`${activeAuWall} mm`} />
-                  <InfoLine label="Inside Diameter" value={`${auId} mm`} />
-                </View>
-              </>
             ) : (
               <>
                 <View style={styles.metricModeBanner}>
@@ -1402,8 +1351,8 @@ function PipeScreen({
           </>        ) : tab === 1 ? (
           <>
             <Text style={styles.pipeReferenceNote}>ENTER ACTUAL TUBE DIMENSIONS</Text>
-            <Field label={`OUTSIDE DIAMETER (${pipeUnit.toUpperCase()})`} value={tubeOd} setValue={setTubeOd} unit={region === 'US' ? 'in' : 'mm'} />
-            <Field label={`WALL THICKNESS (${pipeUnit.toUpperCase()})`} value={tubeWall} setValue={setTubeWall} unit={region === 'US' ? 'in' : 'mm'} />
+            <Field label={`OUTSIDE DIAMETER (${pipeUnit.toUpperCase()})`} value={tubeOd} setValue={setTubeOd} unit={region === 'EU' ? 'mm' : 'in'} />
+            <Field label={`WALL THICKNESS (${pipeUnit.toUpperCase()})`} value={tubeWall} setValue={setTubeWall} unit={region === 'EU' ? 'mm' : 'in'} />
             <View style={styles.infoCard}>
               <InfoLine label="Calculated ID" value={customId ? `${customId} ${pipeUnit}` : 'Enter valid OD and wall'} />
             </View>
@@ -1422,11 +1371,11 @@ function PipeScreen({
             </View>
 
             <Text style={styles.slipStep}>1 · MEASURE THE INNER PIECE</Text>
-            <Field label={`Outside Diameter (OD) · ${pipeUnit}`} value={slipOd} setValue={setSlipOd} unit={region === 'US' ? 'in' : 'mm'} />
+            <Field label={`Outside Diameter (OD) · ${pipeUnit}`} value={slipOd} setValue={setSlipOd} unit={region === 'EU' ? 'mm' : 'in'} />
 
             <Text style={styles.slipStep}>2 · CHOOSE THE TOTAL CLEARANCE</Text>
             <Text style={styles.slipHelp}>Extra room across the full diameter so the outer piece can slide over it.</Text>
-            <Field label={`Total Clearance · ${pipeUnit}`} value={clearance} setValue={setClearance} unit={region === 'US' ? 'in' : 'mm'} />
+            <Field label={`Total Clearance · ${pipeUnit}`} value={clearance} setValue={setClearance} unit={region === 'EU' ? 'mm' : 'in'} />
 
             <View style={styles.slipResultCard}>
               <Text style={styles.slipResultEyebrow}>OUTER PIECE NEEDS AT LEAST</Text>
@@ -4185,22 +4134,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
-  },
-  auModeBanner: {
-    position: 'relative',
-    overflow: 'hidden',
-    minHeight: 92,
-  },
-  auKangarooWatermark: {
-    position: 'absolute',
-    right: -8,
-    bottom: -18,
-    width: 128,
-    height: 108,
-    opacity: 0.16,
-  },
-  auModeForeground: {
-    zIndex: 1,
   },
   fractionTools: {
     marginTop: 8,
