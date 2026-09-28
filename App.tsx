@@ -13,6 +13,7 @@ import {
   Share,
   Alert,
   Modal,
+  NativeModules,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -2648,18 +2649,23 @@ export default function App() {
       Alert.alert('iPhone only', 'Alternate app icons are currently available on iPhone.');
       return;
     }
+
+    // Expo Go does not ship the native ExpoAlternateAppIcons module.
+    // Check for the native module before loading the package so the rest
+    // of the app remains fully previewable in Expo Go.
+    if (!NativeModules.ExpoAlternateAppIcons) {
+      Alert.alert('TestFlight build required', 'App icon switching is available in the native TestFlight/App Store build. The rest of the app can still be previewed in Expo Go.');
+      return;
+    }
+
     try {
       setChangingAppIcon(true);
       const alternateIcons = require('expo-alternate-app-icons');
-      if (!alternateIcons.supportsAlternateIcons) {
-        Alert.alert('New build required', 'App icon switching works in the TestFlight/App Store build, not Expo Go.');
-        return;
-      }
       await alternateIcons.setAlternateAppIcon(name);
       setActiveAppIcon(name);
       setIconPickerVisible(false);
     } catch {
-      Alert.alert('Could not change icon', 'This feature requires the native TestFlight/App Store build.');
+      Alert.alert('Could not change icon', 'App icon switching is available in the native TestFlight/App Store build.');
     } finally {
       setChangingAppIcon(false);
     }
