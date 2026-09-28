@@ -590,7 +590,7 @@ function SavedScreen({
   items: SavedItem[];
   projects: SavedProject[];
   savedNotes: SavedNote[];
-  onAddNote: () => void;
+  onAddNote: () => string;
   onUpdateNote: (noteId: string, changes: Partial<Pick<SavedNote, 'title' | 'body'>>) => void;
   onDeleteNote: (noteId: string) => void;
   onBack: () => void;
@@ -603,6 +603,27 @@ function SavedScreen({
   const groupedIds = new Set(projects.flatMap((project) => project.itemIds));
   const individualItems = items.filter((item) => !groupedIds.has(item.id));
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [notesMenuOpen, setNotesMenuOpen] = useState(false);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(savedNotes[0]?.id ?? null);
+
+  useEffect(() => {
+    if (savedNotes.length === 0) {
+      setSelectedNoteId(null);
+      setNotesMenuOpen(false);
+      return;
+    }
+    if (!selectedNoteId || !savedNotes.some((note) => note.id === selectedNoteId)) {
+      setSelectedNoteId(savedNotes[0].id);
+    }
+  }, [savedNotes, selectedNoteId]);
+
+  const selectedNote = savedNotes.find((note) => note.id === selectedNoteId) ?? savedNotes[0] ?? null;
+
+  const createAndSelectNote = () => {
+    const id = onAddNote();
+    setSelectedNoteId(id);
+    setNotesMenuOpen(false);
+  };
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((current) =>
@@ -620,7 +641,7 @@ function SavedScreen({
         <View style={styles.savedNotesSectionHeader}>
           <Text style={styles.savedSectionTitle}>NOTES</Text>
           <Pressable
-            onPress={onAddNote}
+            onPress={createAndSelectNote}
             style={({ pressed }) => [styles.addNoteButton, pressed && styles.pressed]}
           >
             <Ionicons name="add" size={18} color={BLACK} />
@@ -633,38 +654,91 @@ function SavedScreen({
             No notes yet. Tap New Note to add one.
           </Text>
         ) : (
-          savedNotes.map((note) => (
-            <View key={note.id} style={styles.savedNotepadCard}>
-              <View style={styles.noteTitleRow}>
-                <TextInput
-                  value={note.title}
-                  onChangeText={(title) => onUpdateNote(note.id, { title })}
-                  placeholder="Note label"
-                  placeholderTextColor="#777"
-                  style={styles.noteTitleInput}
-                  returnKeyType="done"
-                />
-                <Pressable
-                  onPress={() => onDeleteNote(note.id)}
-                  hitSlop={8}
-                  style={({ pressed }) => [styles.noteDeleteButton, pressed && styles.pressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete ${note.title || 'note'}`}
-                >
-                  <Ionicons name="trash-outline" size={20} color={MUTED} />
-                </Pressable>
+          <>
+            <Pressable
+              onPress={() => setNotesMenuOpen((open) => !open)}
+              style={({ pressed }) => [styles.notesDropdownButton, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Choose note"
+              accessibilityState={{ expanded: notesMenuOpen }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.notesDropdownLabel}>SELECT NOTE</Text>
+                <Text style={styles.notesDropdownValue} numberOfLines={1}>
+                  {selectedNote?.title?.trim() || 'Untitled note'}
+                </Text>
               </View>
-              <TextInput
-                value={note.body}
-                onChangeText={(body) => onUpdateNote(note.id, { body })}
-                placeholder="Write a note..."
-                placeholderTextColor="#777"
-                style={styles.projectNotesInput}
-                multiline
-                textAlignVertical="top"
-              />
-            </View>
-          ))
+              <Ionicons name={notesMenuOpen ? 'chevron-up' : 'chevron-down'} size={22} color={YELLOW} />
+            </Pressable>
+
+            {notesMenuOpen ? (
+              <View style={styles.notesDropdownMenu}>
+                {savedNotes.map((note) => {
+                  const active = note.id === selectedNote?.id;
+                  return (
+                    <Pressable
+                      key={note.id}
+                      onPress={() => {
+                        setSelectedNoteId(note.id);
+                        setNotesMenuOpen(false);
+                      }}
+                      style={({ pressed }) => [
+                        styles.notesDropdownOption,
+                        active && styles.notesDropdownOptionActive,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Ionicons
+                        name={active ? 'document-text' : 'document-text-outline'}
+                        size={18}
+                        color={active ? BLACK : YELLOW}
+                      />
+                      <Text
+                        style={[styles.notesDropdownOptionText, active && styles.notesDropdownOptionTextActive]}
+                        numberOfLines={1}
+                      >
+                        {note.title.trim() || 'Untitled note'}
+                      </Text>
+                      {active ? <Ionicons name="checkmark" size={18} color={BLACK} /> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
+
+            {selectedNote ? (
+              <View style={styles.savedNotepadCard}>
+                <View style={styles.noteTitleRow}>
+                  <TextInput
+                    value={selectedNote.title}
+                    onChangeText={(title) => onUpdateNote(selectedNote.id, { title })}
+                    placeholder="Note label"
+                    placeholderTextColor="#777"
+                    style={styles.noteTitleInput}
+                    returnKeyType="done"
+                  />
+                  <Pressable
+                    onPress={() => onDeleteNote(selectedNote.id)}
+                    hitSlop={8}
+                    style={({ pressed }) => [styles.noteDeleteButton, pressed && styles.pressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete ${selectedNote.title || 'note'}`}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={MUTED} />
+                  </Pressable>
+                </View>
+                <TextInput
+                  value={selectedNote.body}
+                  onChangeText={(body) => onUpdateNote(selectedNote.id, { body })}
+                  placeholder="Write a note..."
+                  placeholderTextColor="#777"
+                  style={styles.projectNotesInput}
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+            ) : null}
+          </>
         )}
 
         <Text style={styles.savedSectionTitle}>PROJECTS</Text>
@@ -2757,6 +2831,7 @@ export default function App() {
       body: '',
     };
     setSavedNotes((current) => [note, ...current]);
+    return note.id;
   };
 
   const updateSavedNote = (
@@ -4446,6 +4521,59 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  notesDropdownButton: {
+    minHeight: 58,
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    marginBottom: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  notesDropdownLabel: {
+    color: MUTED,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+    marginBottom: 3,
+  },
+  notesDropdownValue: {
+    color: TEXT,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  notesDropdownMenu: {
+    backgroundColor: PANEL,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 6,
+    marginBottom: 8,
+  },
+  notesDropdownOption: {
+    minHeight: 46,
+    borderRadius: 7,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  notesDropdownOptionActive: {
+    backgroundColor: YELLOW,
+  },
+  notesDropdownOptionText: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  notesDropdownOptionTextActive: {
+    color: BLACK,
   },
   savedItemNoteLabel: {
     color: TEXT,
