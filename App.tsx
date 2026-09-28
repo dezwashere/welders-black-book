@@ -606,6 +606,23 @@ function SavedScreen({
   const groupedIds = new Set(projects.flatMap((project) => project.itemIds));
   const individualItems = items.filter((item) => !groupedIds.has(item.id));
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [editingName, setEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(project.name);
+
+  useEffect(() => {
+    if (!editingName) setDraftName(project.name);
+  }, [project.name, editingName]);
+
+  const saveProjectName = () => {
+    const nextName = draftName.trim();
+    if (!nextName) {
+      setDraftName(project.name);
+      setEditingName(false);
+      return;
+    }
+    onRename(project.id, nextName);
+    setEditingName(false);
+  };
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((current) =>
@@ -726,6 +743,7 @@ function ProjectScreen({
   onShare,
   onDelete,
   onNotesChange,
+  onRename,
 }: {
   project: SavedProject;
   items: SavedItem[];
@@ -734,6 +752,7 @@ function ProjectScreen({
   onShare: (item: SavedItem) => void;
   onDelete: (item: SavedItem) => void;
   onNotesChange: (projectId: string, notes: string) => void;
+  onRename: (projectId: string, name: string) => void;
 }) {
   const projectItems = project.itemIds
     .map((id) => items.find((item) => item.id === id))
@@ -754,11 +773,43 @@ function ProjectScreen({
   return (
     <>
       <Header title={project.name.toUpperCase()} onBack={onBack} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.projectDetailHeader}>
           <Ionicons name="folder-open-outline" size={30} color={YELLOW} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.projectDetailName}>{project.name}</Text>
+            {editingName ? (
+              <View style={styles.projectNameEditRow}>
+                <TextInput
+                  value={draftName}
+                  onChangeText={setDraftName}
+                  onSubmitEditing={saveProjectName}
+                  onBlur={saveProjectName}
+                  autoFocus
+                  returnKeyType="done"
+                  selectTextOnFocus
+                  placeholder="Project name"
+                  placeholderTextColor="#777"
+                  style={styles.projectNameInputInline}
+                />
+                <Pressable
+                  onPress={saveProjectName}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.projectNameSaveButton, pressed && styles.pressed]}
+                >
+                  <Ionicons name="checkmark" size={20} color={BLACK} />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => setEditingName(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Edit project name"
+                style={({ pressed }) => [styles.projectNameDisplayRow, pressed && styles.pressed]}
+              >
+                <Text style={styles.projectDetailName}>{project.name}</Text>
+                <Ionicons name="pencil-outline" size={18} color={YELLOW} />
+              </Pressable>
+            )}
             <Text style={styles.projectCount}>
               {projectItems.length === 1 ? '1 saved item' : `${projectItems.length} saved items`}
             </Text>
@@ -2748,6 +2799,16 @@ export default function App() {
     );
   };
 
+  const renameProject = (projectId: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setProjects((current) =>
+      current.map((project) =>
+        project.id === projectId ? { ...project, name: trimmed } : project
+      )
+    );
+  };
+
   const updateSavedItemNotes = (itemId: string, notes: string) => {
     setSavedItems((current) =>
       current.map((item) => item.id === itemId ? { ...item, notes } : item)
@@ -3117,6 +3178,7 @@ export default function App() {
           onShare={shareSaved}
           onDelete={deleteSaved}
           onNotesChange={updateProjectNotes}
+          onRename={renameProject}
         />
       </SafeAreaView>
     );
@@ -4586,9 +4648,45 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   projectDetailName: {
+    flexShrink: 1,
     color: TEXT,
     fontSize: 21,
     fontWeight: '900',
+  },
+  projectNameDisplayRow: {
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  projectNameEditRow: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  projectNameInputInline: {
+    flex: 1,
+    minHeight: 42,
+    backgroundColor: PANEL_DARK,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: YELLOW,
+    color: TEXT,
+    fontSize: 18,
+    fontWeight: '900',
+    paddingHorizontal: 11,
+  },
+  projectNameSaveButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: YELLOW,
+    borderWidth: 1,
+    borderColor: YELLOW_DARK,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveModalBackdrop: {
     flex: 1,
