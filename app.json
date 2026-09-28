@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.dezwashere.weldersblackbook",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
