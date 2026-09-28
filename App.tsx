@@ -89,6 +89,37 @@ const YELLOW = '#f3c646';
 const YELLOW_DARK = '#c99d22';
 const BLACK = '#111111';
 
+const parseMeasurement = (raw: string): number => {
+  const value = raw.trim().replace(/"/g, '').replace(/-/g, ' ');
+  if (!value) return NaN;
+
+  if (!value.includes('/')) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : NaN;
+  }
+
+  const parts = value.split(/\s+/).filter(Boolean);
+  let total = 0;
+
+  for (const part of parts) {
+    if (part.includes('/')) {
+      const [numeratorText, denominatorText] = part.split('/');
+      const numerator = Number(numeratorText);
+      const denominator = Number(denominatorText);
+      if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) return NaN;
+      total += numerator / denominator;
+    } else {
+      const whole = Number(part);
+      if (!Number.isFinite(whole)) return NaN;
+      total += whole;
+    }
+  }
+
+  return total;
+};
+
+const fractionOptions = Array.from({ length: 31 }, (_, index) => `${index + 1}/32`);
+
 const standardPipeData: { nps: string; dn: string; od: number; walls: Record<string, number> }[] = [
   { nps: '1/8', dn: '6', od: 0.405, walls: { '10': 0.049, '40': 0.068, '80': 0.095 } },
   { nps: '1/4', dn: '8', od: 0.540, walls: { '10': 0.065, '40': 0.088, '80': 0.119 } },
@@ -402,11 +433,21 @@ function Field({
   label,
   value,
   setValue,
+  unit = 'mm',
 }: {
   label: string;
   value: string;
   setValue: (value: string) => void;
+  unit?: 'in' | 'mm';
 }) {
+  const [showFractions, setShowFractions] = useState(false);
+
+  const applyFraction = (fraction: string) => {
+    const current = parseMeasurement(value);
+    const whole = Number.isFinite(current) && current >= 1 ? Math.floor(current) : 0;
+    setValue(whole > 0 ? `${whole} ${fraction}` : fraction);
+  };
+
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -414,8 +455,11 @@ function Field({
         <TextInput
           value={value}
           onChangeText={setValue}
-          keyboardType="decimal-pad"
+          keyboardType={unit === 'in' ? 'default' : 'decimal-pad'}
+          autoCapitalize="none"
+          autoCorrect={false}
           style={styles.input}
+          placeholder={unit === 'in' ? 'Example: 1 1/4 or 1.25' : 'Example: 31.8'}
           placeholderTextColor="#777"
         />
         {value ? (
@@ -424,6 +468,35 @@ function Field({
           </Pressable>
         ) : null}
       </View>
+
+      {unit === 'in' ? (
+        <View style={styles.fractionTools}>
+          <Pressable
+            onPress={() => setShowFractions((current) => !current)}
+            style={({ pressed }) => [styles.fractionToggle, showFractions && styles.fractionToggleActive, pressed && styles.pressed]}
+          >
+            <Ionicons name="grid-outline" size={16} color={showFractions ? BLACK : TEXT} />
+            <Text style={[styles.fractionToggleText, showFractions && styles.fractionToggleTextActive]}>
+              {showFractions ? 'HIDE FRACTIONS' : 'CHOOSE FRACTION'}
+            </Text>
+          </Pressable>
+          <Text style={styles.fractionHint}>You can also type 1/2, 3/8, 1 1/4, or a decimal.</Text>
+
+          {showFractions ? (
+            <View style={styles.fractionGrid}>
+              {fractionOptions.map((fraction) => (
+                <Pressable
+                  key={fraction}
+                  onPress={() => applyFraction(fraction)}
+                  style={({ pressed }) => [styles.fractionChip, pressed && styles.pressed]}
+                >
+                  <Text style={styles.fractionChipText}>{fraction}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -853,19 +926,19 @@ function CircleScreen({
 
   const changeUnit = (next: 'in' | 'mm') => {
     if (next === unit) return;
-    const n = parseFloat(value);
+    const n = parseMeasurement(value);
     if (isFinite(n)) setValue((next === 'mm' ? n * 25.4 : n / 25.4).toFixed(next === 'mm' ? 1 : 3));
     setUnit(next);
   };
 
   const result = useMemo(() => {
-    const n = parseFloat(value);
+    const n = parseMeasurement(value);
     if (!isFinite(n) || n <= 0) return '';
     return (mode === 0 ? Math.PI * n : n / Math.PI).toFixed(unit === 'mm' ? 2 : 3);
   }, [mode, value, unit]);
 
   const radius = useMemo(() => {
-    const diameter = mode === 0 ? parseFloat(value) : parseFloat(result);
+    const diameter = mode === 0 ? parseMeasurement(value) : Number(result);
     return isFinite(diameter) && diameter > 0 ? (diameter / 2).toFixed(unit === 'mm' ? 2 : 3) : '';
   }, [mode, value, result, unit]);
 
@@ -909,7 +982,7 @@ function CircleScreen({
         {mode === 0 ? (
           <>
             <Text style={styles.pipeReferenceNote}>WHAT IS THE ACTUAL OUTSIDE DIAMETER?</Text>
-            <Field label={`Outside Diameter (OD) · ${unit}`} value={value} setValue={setValue} />
+            <Field label={`Outside Diameter (OD) · ${unit}`} value={value} setValue={setValue} unit={unit} />
             <View style={styles.resultCard}>
               <Text style={styles.resultTitle}>Circumference / Wrap Length</Text>
               <Text style={styles.resultBig}>{result || '—'} <Text style={styles.resultUnit}>{unit}</Text></Text>
@@ -924,7 +997,7 @@ function CircleScreen({
         ) : (
           <>
             <Text style={styles.pipeReferenceNote}>MEASURED AROUND THE PIPE?</Text>
-            <Field label={`Measured Circumference · ${unit}`} value={value} setValue={setValue} />
+            <Field label={`Measured Circumference · ${unit}`} value={value} setValue={setValue} unit={unit} />
             <View style={styles.resultCard}>
               <Text style={styles.resultTitle}>Outside Diameter (OD)</Text>
               <Text style={styles.resultBig}>{result || '—'} <Text style={styles.resultUnit}>{unit}</Text></Text>
@@ -977,16 +1050,16 @@ function TriangleScreen({
     if (next === unit) return;
     const factor = next === 'mm' ? 25.4 : 1 / 25.4;
     const digits = next === 'mm' ? 1 : 3;
-    const x = parseFloat(a); const y = parseFloat(b);
+    const x = parseMeasurement(a); const y = parseMeasurement(b);
     if (isFinite(x)) setA((x * factor).toFixed(digits));
     if (isFinite(y)) setB((y * factor).toFixed(digits));
     setUnit(next);
   };
 
   const c = useMemo(() => {
-    const x = parseFloat(a);
-    const y = parseFloat(b);
-    return isFinite(x) && isFinite(y) ? Math.sqrt(x * x + y * y).toFixed(2) : '';
+    const x = parseMeasurement(a);
+    const y = parseMeasurement(b);
+    return isFinite(x) && isFinite(y) ? Math.sqrt(x * x + y * y).toFixed(unit === 'mm' ? 2 : 3) : '';
   }, [a, b]);
 
   const savedItem = makeSavedItem(
@@ -1022,8 +1095,8 @@ function TriangleScreen({
             <Text style={[styles.pipeRegionText, unit === 'mm' && styles.pipeRegionTextActive]}>METRIC / MM</Text>
           </Pressable>
         </View>
-        <Field label={`Side a (${unit})`} value={a} setValue={setA} />
-        <Field label={`Side b (${unit})`} value={b} setValue={setB} />
+        <Field label={`Side a (${unit})`} value={a} setValue={setA} unit={unit} />
+        <Field label={`Side b (${unit})`} value={b} setValue={setB} unit={unit} />
 
         <View style={styles.resultCard}>
           <Text style={styles.resultTitle}>Hypotenuse (c)</Text>
@@ -1082,11 +1155,11 @@ function PipeScreen({
       const factor = next === 'EU' ? 25.4 : 1 / 25.4;
       const digits = next === 'EU' ? 2 : 3;
       if (tab === 1) {
-        const od = Number(tubeOd); const wall = Number(tubeWall);
+        const od = parseMeasurement(tubeOd); const wall = parseMeasurement(tubeWall);
         if (Number.isFinite(od)) setTubeOd((od * factor).toFixed(digits));
         if (Number.isFinite(wall)) setTubeWall((wall * factor).toFixed(digits));
       } else {
-        const od = Number(slipOd); const gap = Number(clearance);
+        const od = parseMeasurement(slipOd); const gap = parseMeasurement(clearance);
         if (Number.isFinite(od)) setSlipOd((od * factor).toFixed(digits));
         if (Number.isFinite(gap)) setClearance((gap * factor).toFixed(digits));
       }
@@ -1112,15 +1185,15 @@ function PipeScreen({
   const activeEnWall = enWallOptions.includes(enWall) ? Number(enWall) : enStandard.wallsMm[0];
   const enId = (enStandard.odMm - (2 * activeEnWall)).toFixed(1);
 
-  const customOdNumber = Number(tubeOd);
-  const customWallNumber = Number(tubeWall);
+  const customOdNumber = region === 'EU' ? Number(tubeOd) : parseMeasurement(tubeOd);
+  const customWallNumber = region === 'EU' ? Number(tubeWall) : parseMeasurement(tubeWall);
   const customId =
     Number.isFinite(customOdNumber) && Number.isFinite(customWallNumber) && customOdNumber > 2 * customWallNumber
       ? (customOdNumber - (2 * customWallNumber)).toFixed(region === 'EU' ? 2 : 3)
       : '';
 
-  const slipOdNumber = Number(slipOd);
-  const clearanceNumber = Number(clearance);
+  const slipOdNumber = region === 'EU' ? Number(slipOd) : parseMeasurement(slipOd);
+  const clearanceNumber = region === 'EU' ? Number(clearance) : parseMeasurement(clearance);
   const slipOverId =
     Number.isFinite(slipOdNumber) && Number.isFinite(clearanceNumber)
       ? (slipOdNumber + clearanceNumber).toFixed(region === 'EU' ? 2 : 3)
@@ -1224,10 +1297,8 @@ function PipeScreen({
           </>        ) : tab === 1 ? (
           <>
             <Text style={styles.pipeReferenceNote}>ENTER ACTUAL TUBE DIMENSIONS</Text>
-            <Text style={styles.selectorLabel}>{`OUTSIDE DIAMETER (${pipeUnit.toUpperCase()})`}</Text>
-            <TextInput value={tubeOd} onChangeText={setTubeOd} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
-            <Text style={styles.selectorLabel}>{`WALL THICKNESS (${pipeUnit.toUpperCase()})`}</Text>
-            <TextInput value={tubeWall} onChangeText={setTubeWall} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
+            <Field label={`OUTSIDE DIAMETER (${pipeUnit.toUpperCase()})`} value={tubeOd} setValue={setTubeOd} unit={region === 'EU' ? 'mm' : 'in'} />
+            <Field label={`WALL THICKNESS (${pipeUnit.toUpperCase()})`} value={tubeWall} setValue={setTubeWall} unit={region === 'EU' ? 'mm' : 'in'} />
             <View style={styles.infoCard}>
               <InfoLine label="Calculated ID" value={customId ? `${customId} ${pipeUnit}` : 'Enter valid OD and wall'} />
             </View>
@@ -1246,13 +1317,11 @@ function PipeScreen({
             </View>
 
             <Text style={styles.slipStep}>1 · MEASURE THE INNER PIECE</Text>
-            <Text style={styles.selectorLabel}>{`Outside Diameter (OD) · ${pipeUnit}`}</Text>
-            <TextInput value={slipOd} onChangeText={setSlipOd} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
+            <Field label={`Outside Diameter (OD) · ${pipeUnit}`} value={slipOd} setValue={setSlipOd} unit={region === 'EU' ? 'mm' : 'in'} />
 
             <Text style={styles.slipStep}>2 · CHOOSE THE TOTAL CLEARANCE</Text>
             <Text style={styles.slipHelp}>Extra room across the full diameter so the outer piece can slide over it.</Text>
-            <Text style={styles.selectorLabel}>{`Total Clearance · ${pipeUnit}`}</Text>
-            <TextInput value={clearance} onChangeText={setClearance} keyboardType="decimal-pad" style={styles.input} selectTextOnFocus />
+            <Field label={`Total Clearance · ${pipeUnit}`} value={clearance} setValue={setClearance} unit={region === 'EU' ? 'mm' : 'in'} />
 
             <View style={styles.slipResultCard}>
               <Text style={styles.slipResultEyebrow}>OUTER PIECE NEEDS AT LEAST</Text>
@@ -3995,6 +4064,62 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
+  },
+  fractionTools: {
+    marginTop: 8,
+  },
+  fractionToggle: {
+    minHeight: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#505253',
+    backgroundColor: PANEL_LIGHT,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  fractionToggleActive: {
+    backgroundColor: YELLOW,
+    borderColor: YELLOW_DARK,
+  },
+  fractionToggleText: {
+    color: TEXT,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  fractionToggleTextActive: {
+    color: BLACK,
+  },
+  fractionHint: {
+    color: MUTED,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 6,
+  },
+  fractionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 10,
+  },
+  fractionChip: {
+    minWidth: 58,
+    minHeight: 38,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: YELLOW_DARK,
+    backgroundColor: YELLOW,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  fractionChipText: {
+    color: BLACK,
+    fontSize: 13,
+    fontWeight: '900',
   },
   saveButton: {
     marginTop: 16,
