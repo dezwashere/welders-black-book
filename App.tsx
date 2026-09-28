@@ -56,6 +56,12 @@ type SavedProject = {
   notes?: string;
 };
 
+type SavedNote = {
+  id: string;
+  title: string;
+  body: string;
+};
+
 const SAVED_KEY = 'wbb_saved_items_v1';
 const PROJECTS_KEY = 'wbb_saved_projects_v1';
 const SAVED_NOTES_KEY = 'wbb_saved_notes_v1';
@@ -571,7 +577,9 @@ function SavedScreen({
   items,
   projects,
   savedNotes,
-  onSavedNotesChange,
+  onAddNote,
+  onUpdateNote,
+  onDeleteNote,
   onBack,
   onOpen,
   onShare,
@@ -581,8 +589,10 @@ function SavedScreen({
 }: {
   items: SavedItem[];
   projects: SavedProject[];
-  savedNotes: string;
-  onSavedNotesChange: (notes: string) => void;
+  savedNotes: SavedNote[];
+  onAddNote: () => void;
+  onUpdateNote: (noteId: string, changes: Partial<Pick<SavedNote, 'title' | 'body'>>) => void;
+  onDeleteNote: (noteId: string) => void;
   onBack: () => void;
   onOpen: (item: SavedItem) => void;
   onShare: (item: SavedItem) => void;
@@ -593,23 +603,6 @@ function SavedScreen({
   const groupedIds = new Set(projects.flatMap((project) => project.itemIds));
   const individualItems = items.filter((item) => !groupedIds.has(item.id));
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
-  const [editingName, setEditingName] = useState(false);
-  const [draftName, setDraftName] = useState(project.name);
-
-  useEffect(() => {
-    if (!editingName) setDraftName(project.name);
-  }, [project.name, editingName]);
-
-  const saveProjectName = () => {
-    const nextName = draftName.trim();
-    if (!nextName) {
-      setDraftName(project.name);
-      setEditingName(false);
-      return;
-    }
-    onRename(project.id, nextName);
-    setEditingName(false);
-  };
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((current) =>
@@ -624,21 +617,55 @@ function SavedScreen({
     <>
       <Header title="SAVED" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.savedNotepadCard}>
-          <View style={styles.projectNotesHeader}>
-            <Ionicons name="document-text-outline" size={19} color={YELLOW} />
-            <Text style={styles.projectNotesTitle}>NOTEPAD</Text>
-          </View>
-          <TextInput
-            value={savedNotes}
-            onChangeText={onSavedNotesChange}
-            placeholder="Write a note..."
-            placeholderTextColor="#777"
-            style={styles.projectNotesInput}
-            multiline
-            textAlignVertical="top"
-          />
+        <View style={styles.savedNotesSectionHeader}>
+          <Text style={styles.savedSectionTitle}>NOTES</Text>
+          <Pressable
+            onPress={onAddNote}
+            style={({ pressed }) => [styles.addNoteButton, pressed && styles.pressed]}
+          >
+            <Ionicons name="add" size={18} color={BLACK} />
+            <Text style={styles.addNoteButtonText}>NEW NOTE</Text>
+          </Pressable>
         </View>
+
+        {savedNotes.length === 0 ? (
+          <Text style={[styles.savedSectionEmpty, { marginBottom: 18 }]}>
+            No notes yet. Tap New Note to add one.
+          </Text>
+        ) : (
+          savedNotes.map((note) => (
+            <View key={note.id} style={styles.savedNotepadCard}>
+              <View style={styles.noteTitleRow}>
+                <TextInput
+                  value={note.title}
+                  onChangeText={(title) => onUpdateNote(note.id, { title })}
+                  placeholder="Note label"
+                  placeholderTextColor="#777"
+                  style={styles.noteTitleInput}
+                  returnKeyType="done"
+                />
+                <Pressable
+                  onPress={() => onDeleteNote(note.id)}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.noteDeleteButton, pressed && styles.pressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete ${note.title || 'note'}`}
+                >
+                  <Ionicons name="trash-outline" size={20} color={MUTED} />
+                </Pressable>
+              </View>
+              <TextInput
+                value={note.body}
+                onChangeText={(body) => onUpdateNote(note.id, { body })}
+                placeholder="Write a note..."
+                placeholderTextColor="#777"
+                style={styles.projectNotesInput}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+          ))
+        )}
 
         <Text style={styles.savedSectionTitle}>PROJECTS</Text>
         {projects.length === 0 ? (
@@ -745,6 +772,23 @@ function ProjectScreen({
     .map((id) => items.find((item) => item.id === id))
     .filter((item): item is SavedItem => Boolean(item));
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [editingName, setEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(project.name);
+
+  useEffect(() => {
+    if (!editingName) setDraftName(project.name);
+  }, [project.name, editingName]);
+
+  const saveProjectName = () => {
+    const nextName = draftName.trim();
+    if (!nextName) {
+      setDraftName(project.name);
+      setEditingName(false);
+      return;
+    }
+    onRename(project.id, nextName);
+    setEditingName(false);
+  };
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((current) =>
@@ -2587,7 +2631,7 @@ export default function App() {
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [pendingSave, setPendingSave] = useState<SavedItem | null>(null);
-  const [savedNotes, setSavedNotes] = useState('');
+  const [savedNotes, setSavedNotes] = useState<SavedNote[]>([]);
   const [savedNotesLoaded, setSavedNotesLoaded] = useState(false);
   const [iconPickerVisible, setIconPickerVisible] = useState(false);
   const [activeAppIcon, setActiveAppIcon] = useState<string | null>(null);
@@ -2669,7 +2713,27 @@ export default function App() {
   useEffect(() => {
     AsyncStorage.getItem(SAVED_NOTES_KEY)
       .then((raw) => {
-        if (raw !== null) setSavedNotes(raw);
+        if (raw === null) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            setSavedNotes(
+              parsed
+                .filter((note) => note && typeof note === 'object')
+                .map((note, index) => ({
+                  id: String(note.id ?? `note-${index + 1}`),
+                  title: String(note.title ?? `Note ${index + 1}`),
+                  body: String(note.body ?? ''),
+                }))
+            );
+            return;
+          }
+        } catch {
+          // Existing versions stored the notepad as a plain string.
+        }
+        if (raw.trim()) {
+          setSavedNotes([{ id: 'legacy-note', title: 'General', body: raw }]);
+        }
       })
       .catch(() => {})
       .finally(() => setSavedNotesLoaded(true));
@@ -2677,8 +2741,36 @@ export default function App() {
 
   useEffect(() => {
     if (!savedNotesLoaded) return;
-    AsyncStorage.setItem(SAVED_NOTES_KEY, savedNotes).catch(() => {});
+    AsyncStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(savedNotes)).catch(() => {});
   }, [savedNotes, savedNotesLoaded]);
+
+  const addSavedNote = () => {
+    const usedNumbers = savedNotes
+      .map((note) => /^Note (\d+)$/.exec(note.title))
+      .filter((match): match is RegExpExecArray => Boolean(match))
+      .map((match) => Number(match[1]))
+      .filter(Number.isFinite);
+    const nextNumber = usedNumbers.length ? Math.max(...usedNumbers) + 1 : 1;
+    const note: SavedNote = {
+      id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: `Note ${nextNumber}`,
+      body: '',
+    };
+    setSavedNotes((current) => [note, ...current]);
+  };
+
+  const updateSavedNote = (
+    noteId: string,
+    changes: Partial<Pick<SavedNote, 'title' | 'body'>>
+  ) => {
+    setSavedNotes((current) =>
+      current.map((note) => note.id === noteId ? { ...note, ...changes } : note)
+    );
+  };
+
+  const deleteSavedNote = (noteId: string) => {
+    setSavedNotes((current) => current.filter((note) => note.id !== noteId));
+  };
 
   const isSaved = (item: SavedItem) => {
     const groupedIds = new Set(projects.flatMap((project) => project.itemIds));
@@ -3102,7 +3194,9 @@ export default function App() {
           items={savedItems}
           projects={projects}
           savedNotes={savedNotes}
-          onSavedNotesChange={setSavedNotes}
+          onAddNote={addSavedNote}
+          onUpdateNote={updateSavedNote}
+          onDeleteNote={deleteSavedNote}
           onBack={goHome}
           onOpen={openSaved}
           onShare={shareSaved}
@@ -4299,7 +4393,59 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
     padding: 14,
-    marginBottom: 22,
+    marginBottom: 10,
+  },
+  savedNotesSectionHeader: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 9,
+  },
+  addNoteButton: {
+    minHeight: 38,
+    borderRadius: 8,
+    backgroundColor: YELLOW,
+    borderWidth: 1,
+    borderColor: YELLOW_DARK,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  addNoteButtonText: {
+    color: BLACK,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  noteTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 9,
+  },
+  noteTitleInput: {
+    flex: 1,
+    minHeight: 42,
+    backgroundColor: PANEL_DARK,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BORDER,
+    color: TEXT,
+    fontSize: 16,
+    fontWeight: '900',
+    paddingHorizontal: 11,
+  },
+  noteDeleteButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: PANEL_DARK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   savedItemNoteLabel: {
     color: TEXT,
